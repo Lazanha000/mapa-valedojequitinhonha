@@ -1,13 +1,15 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://servicodados.ibge.gov.br; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://servicodados.ibge.gov.br; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Mapa do Vale do Jequitinhonha</title>
 <meta name="description" content="Mapa interativo dos 51 municípios da Mesorregião Jequitinhonha (MG) com 56 indicadores socioeconômicos oficiais (IBGE, Atlas do Desenvolvimento Humano, INEP, DATASUS), cada um com fonte, ano e avisos.">
 <meta name="theme-color" content="#8a3b12">
 <link rel="canonical" href="https://lazanha000.github.io/mapa-valedojequitinhonha/">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="pt_BR">
 <meta property="og:title" content="Mapa do Vale do Jequitinhonha">
@@ -18,217 +20,11 @@
 <meta property="og:image:alt" content="Mapa dos municípios do Vale do Jequitinhonha coloridos por microrregião">
 <meta name="twitter:card" content="summary_large_image">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Dataset","name":"Indicadores socioeconômicos dos 51 municípios do Vale do Jequitinhonha (MG)","description":"56 indicadores oficiais por município da Mesorregião Jequitinhonha (IBGE): população, economia, agropecuária, saneamento, educação, saúde e desenvolvimento humano. Fontes: IBGE/SIDRA, Atlas do Desenvolvimento Humano (PNUD/IPEA/FJP, via IPEADATA), INEP e DATASUS.","url":"https://lazanha000.github.io/mapa-valedojequitinhonha/","inLanguage":"pt-BR","isAccessibleForFree":true,"temporalCoverage":"1970/2026","spatialCoverage":{"@type":"Place","name":"Mesorregião Jequitinhonha, Minas Gerais, Brasil"},"isBasedOn":["https://sidra.ibge.gov.br/","http://www.ipeadata.gov.br/","https://www.gov.br/inep/","https://datasus.saude.gov.br/"],"distribution":[{"@type":"DataDownload","encodingFormat":"application/json","contentUrl":"https://lazanha000.github.io/mapa-valedojequitinhonha/indicadores.json"}]}</script>
-<style>
-:root{--bg:#fff;--fg:#1c1b19;--mut:#6b675f;--pn:#f6f3ec;--bd:#ddd8cc;--ac:#8a3b12}
-@media(prefers-color-scheme:dark){:root{--bg:#161513;--fg:#ece8df;--mut:#a29c8f;--pn:#1f1d1a;--bd:#3a362f;--ac:#e0914f}}
-*{box-sizing:border-box}html,body{height:100%;margin:0}
-body{font:15px/1.4 system-ui,sans-serif;background:var(--bg);color:var(--fg);display:flex;flex-direction:column}
-header{padding:10px 16px;border-bottom:1px solid var(--bd);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-h1{font-size:18px;margin:0;flex:1 1 220px}h1 small{display:block;font-weight:400;color:var(--mut);font-size:12px}
-button,select,input{font:inherit;color:var(--fg);background:var(--pn);border:1px solid var(--bd);border-radius:6px;padding:5px 10px;cursor:pointer}
-button:hover{border-color:var(--ac)}button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
-main{flex:1;display:flex;min-height:0}
-aside{width:310px;border-right:1px solid var(--bd);background:var(--pn);display:flex;flex-direction:column;min-height:0}
-#bar{padding:8px;display:flex;gap:6px}#bar input{flex:1;min-width:0;cursor:text}
-#list{overflow:auto;flex:1;padding:0 8px 8px}
-#list h3{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin:12px 0 4px;display:flex;align-items:center;gap:6px}
-#list h3 i,.lg i{width:11px;height:11px;border-radius:3px;display:inline-block}
-#list div.it{padding:3px 6px;border-radius:5px;cursor:pointer;display:flex;justify-content:space-between}
-#list div.it:hover{background:var(--bd)}#list div.it.s{background:var(--ac);color:#fff}
-#list span{color:inherit;opacity:.6;font-size:12px}
-#info{border-top:1px solid var(--bd);padding:10px 12px;font-size:14px;min-height:96px}
-#info b{font-size:16px}
-#stage{flex:1;position:relative;min-width:0;background:#f4f1ea}
-#map{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab;-moz-user-select:none;user-select:none}
-#err{position:fixed;left:0;right:0;bottom:0;z-index:20;background:#7a0014;color:#fff;font:12px/1.4 monospace;padding:6px 10px;display:none;word-break:break-all}
-#ctl{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:6px}
-#ctl button{background:#fffd;color:#222;width:36px;padding:5px 0}
-#leg{position:absolute;left:10px;bottom:10px;background:#fffe;color:#222;border:1px solid #ccc;border-radius:8px;padding:6px 10px;font-size:13px}
-.lg{display:flex;align-items:center;gap:6px;cursor:pointer;padding:1px 0}.lg.off{opacity:.4}
-#tip{position:fixed;pointer-events:none;background:#222;color:#fff;font-size:13px;padding:3px 8px;border-radius:5px;display:none;z-index:5}
-#msg{position:absolute;inset:0;display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:center;background:#f4f1ea;color:#222;text-align:center;padding:20px}
-footer{font-size:11px;color:var(--mut);padding:5px 16px;border-top:1px solid var(--bd)}
-#dlg{position:fixed;inset:0;background:#0008;display:flex;align-items:center;justify-content:center;z-index:9;padding:16px}#dlg[hidden]{display:none}
-.box{background:var(--bg);color:var(--fg);border:1px solid var(--bd);border-radius:10px;max-width:580px;width:100%;max-height:85vh;overflow:auto;padding:16px 18px;position:relative}
-#dx{position:absolute;right:10px;top:10px;padding:2px 8px}.box h2{margin:0 28px 2px 0;font-size:19px}.box h4{margin:14px 0 4px;font-size:13px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}
-table.t{width:100%;border-collapse:collapse;font-size:14px}.t td{padding:4px 0;border-bottom:1px solid var(--bd)}.t td:last-child{text-align:right;font-weight:600;padding-left:10px}
-.src{font-size:11px;color:var(--mut);margin-top:12px}#bMais{margin-top:6px}
-@media print{*{-webkit-print-color-adjust:exact;print-color-adjust:exact}header button,aside,#ctl,#tip{display:none}body{display:block;height:auto}main{display:block}#stage{height:85vh;background:#fff}#leg{background:#fff}}
-@media(max-width:800px){main{flex-direction:column-reverse}aside{width:100%;height:42%;border-right:0;border-top:1px solid var(--bd)}}
-
-html,body{height:100%}body{height:100vh;height:100dvh}
-:focus-visible{outline:3px solid #0057d8;outline-offset:2px}
-.m:focus{outline:none}.m:focus-visible{outline:none}
-#list span{opacity:.8}input,select{font-size:16px}
-header{padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
-#hb{display:contents}
-@media(pointer:coarse){button,select,input{min-height:44px}#ctl button{width:44px;height:44px}#list div.it{padding:11px 8px}.lg{padding:7px 0}#dx{min-width:44px}}
-@media(max-width:800px){
-header{padding:6px 12px;gap:4px}h1{flex:1 1 100%;font-size:16px}h1 small{font-size:11px}
-#hb{display:flex;gap:6px;overflow-x:auto;flex:1 1 100%;padding-bottom:4px;-webkit-overflow-scrolling:touch}#hb button{flex:none}
-aside{height:48%;min-height:272px}#stage{min-height:140px}
-#info{flex:none;min-height:0;max-height:55%;overflow:auto;padding:8px 12px;font-size:13px}#info b{font-size:15px}
-#list{min-height:56px}#leg{font-size:11px;padding:4px 8px;left:6px;bottom:6px}
-footer{display:none}.box{max-height:90vh;max-height:90dvh}}
-@media(max-height:480px) and (orientation:landscape){
-main{flex-direction:row}aside{width:44%;height:auto;min-height:0;border-top:0;border-right:1px solid var(--bd)}#info{max-height:60%}}
-
-/* ===== v5 ===== */
-[hidden]{display:none!important}
-:root{--onac:#fff}
-@media(prefers-color-scheme:dark){:root{--onac:#1c1b19}}
-body{font-size:16px}
-button.on,#list div.it.s{color:var(--onac)}
-button.pri{background:var(--ac);color:var(--onac);border-color:var(--ac);font-weight:600}
-button.pri:hover{filter:brightness(1.12)}
-footer{font-size:12px}
-#list span{opacity:1;color:var(--mut);font-size:13px}
-#list div.it.s span{color:var(--onac)}
-#list div.it{padding:6px 8px;font-size:15px}
-#list h3{font-size:13px;color:var(--fg)}
-#list h3 i,.lg i{border:1px solid #0004}
-
-/* painel lateral recolhível */
-body.side-off aside{display:none}
-#ah{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 8px 0}
-#ah strong{font-size:15px}
-#ah button{padding:4px 10px;font-size:14px}
-#openSide{position:absolute;left:10px;top:10px;z-index:4;background:var(--bg);color:var(--fg);box-shadow:0 1px 5px #0004;font-weight:600}
-#mini{position:absolute;left:10px;top:58px;z-index:4;background:var(--bg);color:var(--fg);border:1px solid var(--bd);border-radius:10px;padding:10px 12px;width:min(270px,calc(100% - 80px));box-shadow:0 2px 10px #0004}
-#mini .pri{margin-top:8px;width:100%}
-#nhint{position:absolute;right:64px;top:10px;z-index:3;background:#222e;color:#fff;font-size:13px;line-height:1.35;padding:6px 12px;border-radius:10px;max-width:min(340px,calc(100% - 210px))}
-
-#ord{flex:none;width:112px}
-
-/* painel de município (lateral) */
-#info .empty{margin:0;color:var(--mut)}
-.ih{display:flex;gap:10px;align-items:center;margin-bottom:8px}
-.dot{flex:none;width:20px;height:20px;border-radius:50%;border:2px solid var(--fg);display:inline-block}
-.nm{font-size:18px;font-weight:700;line-height:1.2}
-.sb{color:var(--mut);font-size:14px}
-.kv{margin:0 0 10px;display:grid}
-.kv div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--bd);padding:5px 0}
-.kv dt{color:var(--mut)}
-.kv dd{margin:0;font-weight:600;text-align:right}
-.kv small{display:block;font-weight:400;color:var(--mut);font-size:13px}
-.acts{display:flex;gap:8px;flex-wrap:wrap}.acts button{flex:1 1 auto}
-
-/* legenda */
-#leg{font-size:14px;line-height:1.35}
-.lt{font-weight:700}.lh{font-size:12px;color:#555;margin-bottom:3px}
-.lg{padding:3px 0}.lg:hover span,.lg:hover{text-decoration:underline}
-.lg i{width:16px;height:16px;flex:none}
-.lg[aria-pressed=true]{font-weight:700}
-
-/* painel de cores e nomes */
-#cp{position:absolute;right:60px;top:10px;width:min(370px,calc(100% - 80px));max-height:calc(100% - 20px);display:flex;flex-direction:column;background:var(--bg);color:var(--fg);border:1px solid var(--bd);border-radius:12px;box-shadow:0 6px 26px #0005;z-index:6}
-#cp:focus{outline:none}
-.cph{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1px solid var(--bd)}
-.cph h2{font-size:17px;margin:0}
-#cpb{overflow:auto;padding:0 12px 12px}
-#cpb section{padding:12px 0;border-bottom:1px solid var(--bd)}
-#cpb h3{font-size:15px;margin:0 0 8px}
-.pals{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.pal{display:flex;flex-direction:column;align-items:stretch;gap:5px;padding:6px;text-align:left;font-size:13px;line-height:1.2}
-.pal[aria-pressed=true]{border-color:var(--ac);box-shadow:0 0 0 2px var(--ac)}
-.sw{display:flex;height:16px;border-radius:4px;overflow:hidden;border:1px solid #8886}.sw i{flex:1;display:block}
-.gr{display:block;height:16px;border-radius:4px;border:1px solid #8886}
-.crs{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:8px;align-items:center}
-.cr{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer}
-input[type=color]{width:46px;height:34px;padding:2px;border-radius:6px;cursor:pointer}
-.ck{display:flex;gap:8px;align-items:flex-start;margin-top:8px;font-size:14px;cursor:pointer}
-.ck input{margin-top:3px;flex:none;width:18px;height:18px;min-height:0;padding:0}
-#cpb summary{cursor:pointer;margin-top:8px;font-size:14px;font-weight:600;min-height:32px;display:flex;align-items:center}
-.hint{color:var(--mut);font-size:14px;margin:0}
-.rst{margin-top:12px;width:100%}
-
-/* menus de dados (caixa de diálogo) */
-#dlg{background:#000a}
-.box{display:flex;flex-direction:column;max-width:700px;padding:0;overflow:hidden;max-height:90vh;max-height:90dvh;font-size:16px;line-height:1.5}
-.dhead{flex:none;display:flex;gap:12px;align-items:flex-start;justify-content:space-between;padding:16px 20px 12px;border-bottom:1px solid var(--bd)}
-.dhead h2{margin:0;font-size:24px;line-height:1.2}
-.dsub{color:var(--mut);font-size:15px;margin-top:2px}
-#dx{position:static;flex:none;padding:6px 14px;font-weight:600;min-height:40px}
-#dnav{flex:none;display:flex;gap:6px;overflow-x:auto;padding:10px 20px;border-bottom:1px solid var(--bd);background:var(--pn)}
-#dnav button{flex:none;border-radius:999px;font-size:14px;padding:5px 14px}
-#dbody{overflow:auto;padding:4px 20px 22px;flex:1;-webkit-overflow-scrolling:touch}
-.hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0 4px}
-.stat{background:var(--pn);border:1px solid var(--bd);border-radius:10px;padding:10px 12px}
-.sl{font-size:14px;color:var(--mut)}
-.sv{font-size:28px;font-weight:700;line-height:1.15;font-variant-numeric:tabular-nums}
-.su{font-size:14px;color:var(--mut)}
-.sec{padding-top:20px}
-.sec h3{font-size:18px;margin:0 0 4px;padding-bottom:6px;border-bottom:2px solid var(--ac)}
-.sec h3:focus{outline:none}
-.intro{margin:4px 0 2px;color:var(--mut);font-size:14px}
-table.t{width:100%;border-collapse:collapse;font-size:16px}
-.t th,.t td{padding:10px 0;border-bottom:1px solid var(--bd);vertical-align:top}
-.t th{font-weight:400;text-align:left;padding-right:12px}
-.t td{text-align:right;font-weight:700;white-space:nowrap;padding-left:10px;font-variant-numeric:tabular-nums}
-.t th small{display:block;color:var(--mut);font-size:13px;line-height:1.35}
-.t tr.hb th,.t tr.hb td{border-bottom:0;padding-bottom:4px}
-.t tr.bb td{padding:0 0 12px;text-align:left;font-weight:400;white-space:normal}
-.bar{display:block;height:8px;border-radius:4px;background:var(--bd);overflow:hidden}
-.bar i{display:block;height:100%;background:var(--ac)}
-.gl{font-size:14px;color:var(--mut);margin:20px 0 0;padding:10px 12px;background:var(--pn);border-radius:8px}
-.warn{background:#fff4d6;color:#3a2a00;border-left:4px solid #c98a00;padding:8px 12px;border-radius:4px}
-@media(prefers-color-scheme:dark){.warn{background:#3a2e10;color:#f6e3b0}}
-.ext a{display:inline-block;margin-top:16px;padding:10px 14px;border:1px solid var(--ac);border-radius:8px;color:var(--ac);font-weight:600;text-decoration:none}
-.ext a:hover{background:var(--ac);color:var(--onac)}
-.srcbox{margin-top:14px;font-size:14px;color:var(--mut)}
-.srcbox summary{cursor:pointer;font-weight:600;min-height:32px;display:flex;align-items:center}
-.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-.load{padding:20px 0;color:var(--mut)}
-
-@media(max-width:800px){
-#leg{font-size:12px}
-.nm{font-size:16px}
-#cp{left:8px;right:8px;top:8px;width:auto;max-height:calc(100% - 16px)}
-#nhint{right:60px;max-width:calc(100% - 190px)}
-#dlg{align-items:flex-end;padding:0}
-.box{max-width:none;border-radius:16px 16px 0 0;max-height:92vh;max-height:92dvh}
-.dhead{padding:14px 16px 10px}.dhead h2{font-size:21px}
-#dnav{padding:8px 16px}#dbody{padding:2px 16px 22px}
-.sv{font-size:24px}
-}
-@media print{#openSide,#mini,#nhint,#cp{display:none!important}}
-
-/* ===== v6 ===== */
-#bar2{padding:0 8px 8px}#bar2 select{width:100%}
-#bPal{font-weight:600;border-color:var(--ac)}
-.cls{margin-top:4px}.cl{display:flex;align-items:center;gap:6px}.cl i{width:14px;height:14px;flex:none;border:1px solid #0004;border-radius:3px;display:inline-block}
-.tlw{margin-top:6px;border-top:1px solid #ccc;padding-top:6px}.tlw input[type=range]{width:170px;display:block;padding:0;min-height:0;background:transparent;border:0}
-.spk{display:block;width:100%;max-width:420px;height:auto;color:var(--ac);margin:2px 0}
-.sub{color:var(--mut);font-weight:400}
-.cmpw{overflow-x:auto;margin-top:12px}.cmp thead th{text-align:right;font-weight:700;padding-left:10px;vertical-align:bottom}.cmp td{white-space:normal;min-width:110px}
-.help{margin:12px 0 0;padding-left:20px}.help li{margin:0 0 10px}
-@media(max-width:800px){#bPal{order:-1}}
-@media print{#bar2,.tlw{display:none}}
-
-/* ===== v8 ===== */
-:root{--map:#f4f1ea}
-@media(prefers-color-scheme:dark){:root{--map:#2b2925}}
-#stage,#msg{background:var(--map)}#msg{color:var(--fg)}#msg small{color:var(--mut)!important}
-.skip{position:absolute;left:8px;top:-80px;z-index:30;background:var(--bg);color:var(--fg);padding:8px 12px;border:2px solid var(--ac);border-radius:6px;font-weight:600}.skip:focus{top:8px}
-#legT{display:flex;width:100%;justify-content:space-between;gap:8px;background:none;border:0;border-radius:4px;padding:0 0 3px;min-height:0;color:#555;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
-#legT::after{content:'▾'}#leg.lc #legT::after{content:'▸'}#leg.lc #legT{padding:0}#leg.lc #legB{display:none}
-.tlw button{margin-top:4px;padding:2px 10px;min-height:0;background:#fff;color:#222;border-color:#bbb}
-#dlm summary{list-style:none;background:var(--pn);border:1px solid var(--bd);border-radius:6px;padding:5px 10px;cursor:pointer}
-#dlm summary::-webkit-details-marker{display:none}#dlm summary:hover{border-color:var(--ac)}
-.dlp{position:fixed;z-index:12;display:flex;flex-direction:column;gap:4px;background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:6px;box-shadow:0 6px 20px #0004;min-width:220px}
-.dlp button{text-align:left}
-@media(pointer:coarse){#dlm summary{min-height:44px;display:flex;align-items:center}#legT{min-height:32px}.tlw button{min-height:36px}}
-#bMod{max-width:270px;text-overflow:ellipsis}
-/* legenda no canto inferior direito: o vale vai de sudoeste a nordeste, então esse canto fica vazio */
-#leg{left:auto;right:10px;max-height:calc(100% - 190px);overflow:auto}
-@media(max-width:800px){#leg{left:auto;right:6px}}
-@media(max-width:800px){#bMod{flex:1 1 100%;max-width:none}#hb>*{flex:none}.sfn{display:none}}
-@media print{#dlm,.skip{display:none!important}}
-</style></head><body>
+<link rel="stylesheet" href="style.css"></head><body>
 <a class="skip" href="#q" data-skip="q">Pular para a lista de municípios</a><a class="skip" href="#map" data-skip="map">Pular para o mapa</a>
 <noscript><p style="padding:16px;margin:0;background:#fff4d6;color:#3a2a00">Este mapa precisa de JavaScript ligado no navegador para funcionar.</p></noscript>
 <header>
-<h1>Vale do Jequitinhonha<small id="sub">carregando…</small></h1>
+<h1><svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#8a3b12"/><path d="M8 44 22 24l8 10 10-16 16 26z" fill="#e9b872"/><path d="M6 53c12-8 26 5 52-4" fill="none" stroke="#8fb3d9" stroke-width="5" stroke-linecap="round"/></svg><span>Vale do Jequitinhonha<small id="sub">carregando…</small></span></h1>
 <select id="bMod" aria-label="Colorir o mapa por"><option value="m">Cor: microrregião</option><option value="p" disabled>Cor: população</option><option value="d" disabled>Cor: densidade</option><option value="b" disabled>Cor: PIB</option><option value="c" disabled>Cor: PIB per capita</option><option value="a" disabled>Cor: alfabetização</option><option value="s" disabled>Cor: esgoto adequado</option></select>
 <div id="hb"><button id="bCor" class="on" aria-pressed="true">Cores</button><button id="bNom" aria-pressed="false">Nomes</button>
 <button id="bPal" aria-expanded="false" aria-controls="cp">Personalizar cores</button><button id="bVale">Dados do Vale</button><button id="bCmp" hidden>Comparar (0)</button><details id="dlm"><summary>Baixar ▾</summary><div class="dlp"><button id="bCsv">Tabela CSV (abre no Excel)</button><button id="bSvg">Mapa em SVG (vetor)</button><button id="bPng">Mapa em PNG (alta resolução)</button></div></details><button id="bHelp" aria-label="Ajuda">? Ajuda</button></div>
@@ -248,10 +44,10 @@ table.t{width:100%;border-collapse:collapse;font-size:16px}
 <div id="nhint" role="status" hidden></div>
 <div id="cp" role="dialog" aria-labelledby="cpt" tabindex="-1" hidden><div class="cph"><h2 id="cpt">Cores e nomes</h2><button id="cpx" aria-label="Fechar o painel de cores">✕ Fechar</button></div><div id="cpb"></div></div>
 <div id="leg"><button type="button" id="legT" aria-expanded="true" aria-controls="legB">Legenda</button><div id="legB"></div></div>
-<div id="msg">Carregando a malha oficial do IBGE…</div>
+<div id="msg" class="ld">Carregando a malha oficial do IBGE…</div>
 </div>
 </main>
 <footer>Mapa: malha municipal oficial do IBGE, qualidade máxima (áreas calculadas a partir dela são aproximadas). Indicadores: IBGE/SIDRA, Atlas do Desenvolvimento Humano (PNUD/IPEA/FJP, via IPEADATA), INEP e DATASUS, conferidos com a resposta original de cada fonte; fonte e avisos de cada número na ficha do município.</footer>
 <div id="dlg" hidden><div class="box" role="dialog" aria-modal="true" aria-labelledby="dtitle"><div class="dhead"><div><h2 id="dtitle"></h2><div class="dsub" id="dsub"></div></div><button id="dx" aria-label="Fechar">✕ Fechar</button></div><nav id="dnav" aria-label="Ir para uma seção" hidden></nav><div id="dbody"></div></div></div>
-<div id="tip"></div><div id="err" role="alert"></div>
+<div id="tip"></div><div id="err" role="alert"></div><div id="net" role="status" hidden>Sem internet. O mapa continua funcionando com o que já foi carregado.</div><div id="live" class="sr" aria-live="polite"></div>
 <script src="app.js" defer></script></body></html>

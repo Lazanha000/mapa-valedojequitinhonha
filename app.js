@@ -121,7 +121,7 @@ function build(d){
   $('#fm').innerHTML='<option value="">Todas as microrregiões</option>'+micros.map(m=>`<option value="${m}">${m}</option>`).join('');
 }
 /* Traços: largura em pixels de tela = largura × unidades-por-pixel (sem vector-effect, que é lento em contornos grandes). */
-function sty(){const u=st.upp;$('#sty').textContent=`path{stroke-linejoin:round}#o path{fill:#222;stroke:#222;stroke-width:${3.2*u}px}.m{stroke:#3a3631;stroke-width:${.7*u}px;cursor:pointer}.m.sel{stroke:#b00020;stroke-width:${2.4*u}px}.m:focus-visible{stroke:#0057d8;stroke-width:${3.5*u}px}`}
+function sty(){const u=st.upp;$('#sty').textContent=`path{stroke-linejoin:round}#o path{fill:#222;stroke:#222;stroke-width:${3.2*u}px}.m{stroke:#3a3631;stroke-width:${.7*u}px;cursor:pointer}@media(hover:hover){.m:hover{stroke:#111;stroke-width:${1.8*u}px}}.m.sel{stroke:#b00020;stroke-width:${2.4*u}px}.m:focus-visible{stroke:#0057d8;stroke-width:${3.5*u}px}`}
 /* Estilo da exportação (SVG/PNG): traço de largura fixa na imagem. */
 const styExp=s=>`path{vector-effect:non-scaling-stroke;stroke-linejoin:round}#o path{fill:#222;stroke:#222;stroke-width:${3.2*s}px}.m{stroke:#3a3631;stroke-width:${.7*s}px}.m.sel{stroke:#b00020;stroke-width:${2.4*s}px}`;
 /* ===== v6: geometria por nível de zoom (LOD) =====
@@ -258,23 +258,28 @@ const valOf=f=>mode==='m'?0:MODES[mode].v(f);
 const fillOf=f=>hx(C.mun[f.id],null)||(mode==='m'?microColor(micros.indexOf(f.micro)):(RAMP&&RAMP.get(f))||'#d9d4c5');
 const legMicro=()=>'<div class="lt">Microrregiões</div><div class="lh">Clique para destacar uma</div>'+micros.map((m,i)=>`<div class="lg" role="button" tabindex="0" aria-pressed="false" data-m="${m}"><i style="background:${microColor(i)}"></i>${m}</div>`).join('');
 const fv=(M,x)=>(M.pre||'')+f1(x,M.d)+(M.u||'');
-function recolor(){const M=MODES[mode],a=F.map(f=>[f,valOf(f)]).filter(x=>x[1]!=null&&(M.z||x[1]>0)).sort((x,y)=>x[1]-y[1]),n=a.length;
-  RAMP=new Map(a.map(([f],i)=>[f,rampAt(n>1?i/(n-1):0)]));
-  let cl='';if(n>=5)for(let q=0;q<5;q++){const i0=Math.floor(q*n/5),i1=Math.max(i0,Math.floor((q+1)*n/5)-1);
-    cl+=`<div class="cl"><i style="background:${rampAt((q+.5)/5)}"></i>${fv(M,a[i0][1])} – ${fv(M,a[i1][1])}</div>`}
-  $('#lgb').innerHTML=`<div class="lt">${M.t}${M.yrs&&YR?' '+YR:''}</div><div style="height:12px;width:170px;margin:4px 0;border:1px solid #8886;background:${rampCss()}"></div>`+
-    (n?`<div style="display:flex;justify-content:space-between"><span>${fv({...M,u:'',pre:''},a[0][1])}</span><span>${fv(M,a[n-1][1])}</span></div>`:'')+
-    (cl?`<div class="cls" aria-label="Faixas, cada uma com cerca de 1/5 dos municípios">${cl}</div>`:'')+
-    `<div class="lh" style="max-width:170px;margin-top:3px">Cor por posição no ranking (não proporcional). Cada faixa tem cerca de 1/5 dos municípios. Cinza: sem dado.${M.note?' '+M.note:''}</div>`;
+/* QF: faixa da legenda escolhida (só os municípios dela ficam fortes); QM: município → faixa; RK: município → posição (1 = maior) */
+let QF=null,QM=new Map(),RK=new Map(),RN=0;
+function recolor(){const M=MODES[mode],a=F.map(f=>[f,valOf(f)]).filter(x=>!noVal(M,x[1])).sort((x,y)=>x[1]-y[1]),n=a.length;
+  RAMP=new Map(a.map(([f],i)=>[f,rampAt(n>1?i/(n-1):0)]));RK=new Map(a.map(([f],i)=>[f,n-i]));RN=n;QM=new Map();
+  let cl='';if(n>=5)for(let q=0;q<5;q++){const i0=Math.floor(q*n/5),i1=Math.max(i0,Math.floor((q+1)*n/5)-1);for(let i=i0;i<=i1;i++)QM.set(a[i][0],q);
+    cl+=`<div class="cl" role="button" tabindex="0" data-q="${q}" aria-pressed="${QF===q}"><i style="background:${rampAt((q+.5)/5)}"></i>${esc(fv(M,a[i0][1]))} – ${esc(fv(M,a[i1][1]))}</div>`}
+  if(!cl)QF=null;
+  $('#lgb').innerHTML=`<div class="lt">${esc(M.t)}${M.yrs&&YR?' '+YR:''}</div><div style="height:12px;width:180px;margin:4px 0;border:1px solid #8886;border-radius:3px;background:${rampCss()}"></div>`+
+    (n?`<div style="display:flex;justify-content:space-between;width:180px"><span>${esc(fv({...M,u:'',pre:''},a[0][1]))}</span><span>${esc(fv(M,a[n-1][1]))}</span></div>`:'')+
+    (cl?`<div class="cls${QF!=null?' f':''}" role="group" aria-label="Faixas, cada uma com cerca de 1/5 dos municípios. Clique numa faixa para destacar só esses municípios.">${cl}</div>`:'')+
+    `<div class="lh" style="max-width:180px;margin-top:3px">Cor por posição no ranking (não proporcional). Cada faixa tem cerca de 1/5 dos municípios; clique numa para destacar. Cinza: sem dado.${M.note?' '+esc(M.note):''}</div>`;
   paint()}
-function setMode(v){mode=MODES[v]?v:'m';const L=$('#legB');stopPlay();
+const say=t=>{const l=$('#live');l.textContent='';setTimeout(()=>{l.textContent=t},60)};
+function setMode(v){mode=MODES[v]?v:'m';const L=$('#legB');stopPlay();QF=null;
+  say(mode==='m'?'Mapa colorido por microrregião':'Mapa colorido por '+MODES[mode].t);
   const om=$('#ord option[value=mp]');om.disabled=mode==='m';if(mode==='m'&&$('#ord').value==='mp')$('#ord').value='a';
   if(mode==='m'){RAMP=null;L.innerHTML=legMicro();syncHash();paint();renderList();refreshInfo();return}
   const M=MODES[mode],ys=M.yrs?yrsOf(M.yrs):[];
   if(M.yrs&&!ys.includes(YR))YR=ys[ys.length-1]||null;
   L.innerHTML='<div id="lgb"></div>'+(ys.length>1?`<div class="tlw"><label for="yr">Ano: <b id="yl">${YR}</b></label><input type="range" id="yr" min="0" max="${ys.length-1}" step="1" value="${ys.indexOf(YR)}"><button type="button" id="yplay" aria-pressed="false">▶ Animar</button></div>`:'<div id="lgy"></div>');
   recolor();syncHash();renderList();refreshInfo()}
-function setYear(i){const ys=yrsOf(MODES[mode].yrs),y=ys[i];if(!y)return;YR=y;$('#yr').value=i;$('#yl').textContent=y;recolor();syncHash();if($('#ord').value==='mp')renderList();refreshInfo()}
+function setYear(i){const ys=yrsOf(MODES[mode].yrs),y=ys[i];if(!y)return;YR=y;$('#yr').value=i;$('#yl').textContent=y;recolor();syncHash();if($('#ord').value==='mp')renderList();refreshInfo();if(!PLAY)say('Ano '+y)}
 /* "Animar": avança um ano a cada 0,9 s e para no último */
 let PLAY=0;
 function stopPlay(){clearInterval(PLAY);PLAY=0;const b=$('#yplay');if(b){b.textContent='▶ Animar';b.setAttribute('aria-pressed','false')}}
@@ -285,7 +290,7 @@ $('#leg').addEventListener('input',e=>{if(e.target.id!=='yr'||mode==='m')return;
 function refreshColors(){if(!F.length)return;setMode(mode);renderList()}
 $('#bMod').onchange=e=>setMode(e.target.value);
 function paint(){F.forEach(f=>{f.el.setAttribute('fill',colored?fillOf(f):'#d9d4c5');
-  f.el.style.opacity=(focus&&f.micro!==focus)?.25:1;f.el.classList.toggle('sel',f===sel)});
+  f.el.style.opacity=((focus&&f.micro!==focus)||(QF!=null&&mode!=='m'&&QM.get(f)!==QF))?.25:1;f.el.classList.toggle('sel',f===sel)});
   if(sel)sel.el.parentNode.appendChild(sel.el);
   document.querySelectorAll('.lg').forEach(e=>{e.classList.toggle('off',!!focus&&e.dataset.m!==focus);e.setAttribute('aria-pressed',String(focus===e.dataset.m))});applyLabels()}
 const MODEKEYS=['m','p','d','b','c','a','s'],ID=/^\d{6,8}$/;
@@ -310,7 +315,7 @@ function renderList(){const q=nrm($('#q').value.trim()),o=$('#ord').value,fmv=$(
   else micros.forEach((m,i)=>{const l=L.filter(f=>f.micro===m).sort((a,b)=>a.nome.localeCompare(b.nome,'pt'));
     if(l.length)h+=`<h3><i style="background:${microColor(i)}"></i>${m} (${l.length})</h3>`+l.map(it).join('')});
   $('#list').innerHTML=h||'<p>Nada encontrado.</p>'}
-const it=f=>{const o=ORDS[$('#ord').value];return `<div class="it${f===sel?' s':''}" role="button" tabindex="0" data-id="${f.id}"${f===sel?' aria-current="true"':''}>${f.nome}<span>${o?o[1](o[0](f)):fmt(f.area)+' km²'}</span></div>`};
+const it=f=>{const o=ORDS[$('#ord').value];return `<div class="it${f===sel?' s':''}" role="button" tabindex="0" data-id="${f.id}"${f===sel?' aria-current="true"':''}>${f.nome}<span>${esc(o?o[1](o[0](f)):fmt(f.area)+' km²')}</span></div>`};
 
 $('#list').onclick=e=>{const d=e.target.closest('.it');if(d)pick(F.find(f=>f.id==d.dataset.id),true)};
 $('#q').oninput=renderList;$('#ord').onchange=renderList;$('#fm').onchange=renderList;
@@ -318,6 +323,8 @@ $('#q').onkeydown=e=>{if(e.key!=='Enter')return;const d=$('#list .it');if(d){e.p
 $('#leg').onclick=e=>{
   if(e.target.id==='legT'){const c=$('#leg').classList.toggle('lc');e.target.setAttribute('aria-expanded',String(!c));applyLabels();return}
   if(e.target.id==='yplay')return togglePlay(e.target);
+  const q=e.target.closest('.cl');if(q){const v=+q.dataset.q;QF=QF===v?null:v;recolor();const n=$(`.cl[data-q="${v}"]`);if(n)n.focus();
+    say(QF==null?'Todas as faixas':'Destacando a faixa '+(v+1)+' de 5');return}
   const d=e.target.closest('.lg');if(!d)return;focus=focus===d.dataset.m?null:d.dataset.m;paint()};
 /* no celular a legenda começa recolhida (ela cobria parte do mapa) */
 if(matchMedia('(max-width:800px)').matches){$('#leg').classList.add('lc');$('#legT').setAttribute('aria-expanded','false')}
@@ -349,6 +356,7 @@ svg.addEventListener('pointerup',e=>{ptr.delete(e.pointerId);svg.style.cursor='g
   if(moved<6&&!ptr.size){const t=document.elementFromPoint(e.clientX,e.clientY);const m=t&&t.closest&&t.closest('.m');if(m)pick(F[m.dataset.i],false)}});
 svg.addEventListener('pointercancel',e=>ptr.delete(e.pointerId));
 svg.addEventListener('pointerleave',()=>$('#tip').style.display='none');
+svg.addEventListener('dblclick',e=>{const r=svg.getBoundingClientRect();zoomAt(2,e.clientX-r.left,e.clientY-r.top)});
 new ResizeObserver(()=>{if(F.length){size();view()}}).observe(svg);
 
 function snap(Wp){const pad=1.06,ew=bb.w*pad,eh=bb.h*pad,Hp=Math.round(Wp*eh/ew),s=Wp/1500,c=svg.cloneNode(true),x=bb.cx-ew/2,y=bb.cy-eh/2;
@@ -437,7 +445,7 @@ function openDlg(title,sub,body){
   if($('#dlg').hidden)lastFocus=document.activeElement;
   $('#dtitle').textContent=title;$('#dsub').textContent=sub||'';$('#dbody').innerHTML=body;
   const S=[...$('#dbody').querySelectorAll('section.sec')];
-  $('#dnav').innerHTML=S.map(s=>`<button type="button" data-go="${s.id}">${s.querySelector('h3').textContent}</button>`).join('');
+  $('#dnav').innerHTML=S.map(s=>`<button type="button" data-go="${s.id}">${esc(s.querySelector('h3').textContent)}</button>`).join('');
   $('#dnav').hidden=S.length<2;
   $('#dlg').hidden=false;inertBg(true);$('#dbody').scrollTop=0;$('#dx').focus()}
 /* com o diálogo aberto, o resto da página fica inacessível ao teclado e ao leitor de tela */
@@ -479,10 +487,13 @@ async function openVale(){
     (n22.length<F.length?`<p class="warn">Atenção: ${F.length-n22.length} município(s) sem dado de 2022 carregado; totais parciais.</p>`:'')+
     GL+SRC)}
 $('#info').onclick=e=>{const b=e.target.closest('button');if(!b)return;
+  if(b.id==='bLink'&&SHARE){navigator.share({title:document.title,url:location.href}).catch(()=>{});return}
   if(b.id==='bLink'){const u=location.href;(navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject()).then(()=>{b.textContent='Link copiado!';setTimeout(()=>{b.textContent='Copiar link'},2500)},()=>prompt('Copie o link:',u));return}
   if(b.id==='bMais'&&sel)openMun(sel);
   if(b.id==='bAddCmp'&&sel)toggleCmp(sel)};
 $('#bVale').onclick=openVale;
+/* no celular, "Compartilhar" abre o menu nativo (WhatsApp etc.); no computador continua "Copiar link" */
+const SHARE=!!navigator.share&&matchMedia('(pointer:coarse)').matches;
 let CMP=[];
 function updCmp(){const b=$('#bCmp');b.hidden=!CMP.length;b.textContent='Comparar ('+CMP.length+')'}
 function toggleCmp(f){const i=CMP.indexOf(f);if(i>=0)CMP.splice(i,1);else{if(CMP.length>=4)CMP.shift();CMP.push(f)}updCmp();refreshInfo()}
@@ -494,23 +505,27 @@ async function openCmp(){
       ['População em 2022 (hab.)',S.map(x=>n(x.pop,fmt))],['Densidade (hab/km²)',S.map(x=>n(x.den,v=>f1(v,2)))],['Área oficial (km²)',S.map(x=>n(x.area,v=>f1(v,1)))],
       ['PIB mais recente',S.map(x=>n(x.pib,b=>'R$ '+f1(b.v/1000,1)+' mi ('+b.p+')'))],['PIB per capita (mais recente)',S.map(x=>n(x.pc,v=>'R$ '+fmt(v)+(x.pcy?' ('+x.pcy+')':'')))],
       ['Alfabetização 15+ (%)',S.map(x=>n(x.alf,v=>f1(v,1)+'%'))],['Esgoto: rede, pluvial ou fossa séptica (%, 2022)',S.map(x=>n(x.esg,v=>f1(v,1)+'%'))],['Lixo coletado (%)',S.map(x=>n(x.lixo,v=>f1(v,1)+'%'))]];
+  /* o indicador que está colorindo o mapa também entra na comparação */
+  if(mode!=='m')R.push([esc(MODES[mode].t)+(YR&&MODES[mode].yrs?' ('+YR+')':''),CMP.map(f=>esc(valTxt(f)))]);
   openDlg('Comparar municípios',CMP.length+' municípios lado a lado',`<div class="cmpw"><table class="t cmp"><thead><tr><th scope="col"><span class="sr">Indicador</span></th>${CMP.map(f=>`<th scope="col">${f.nome}</th>`).join('')}</tr></thead><tbody>${R.map(r=>`<tr><th scope="row">${r[0]}</th>${r[1].map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div><p class="intro">Dados do IBGE. PIB per capita: PIB dividido pela população do mesmo ano (valores da época).</p><div class="acts"><button type="button" id="cmpClear">Limpar comparação</button></div>`+SRC);
   const cb=$('#cmpClear');if(cb)cb.onclick=()=>{CMP=[];updCmp();refreshInfo();closeDlg()}}
 $('#bCmp').onclick=openCmp;
-$('#bHelp').onclick=()=>openDlg('Ajuda','Como usar o mapa',`<div class="sec"><ul class="help"><li><b>Mapa:</b> arraste para mover; roda do mouse, pinça ou botões + − para aproximar; ⌂ mostra tudo.</li><li><b>Clique ou toque</b> num município para ver o resumo. “Ver todos os dados” abre população, economia, educação, saneamento e evolução ao longo dos anos.</li><li><b>Cor:</b> escolha a microrregião ou um dos 56 indicadores, separados por tema (população, economia, agropecuária, saneamento, educação, saúde, desenvolvimento humano). Nos indicadores com mais de um ano, use o controle “Ano” na legenda ou “▶ Animar” para ver os anos em sequência. As cores seguem a posição no ranking, e a legenda mostra as faixas. Passe o mouse num município para ver o valor.</li><li><b>Legenda:</b> toque em “Legenda” para recolher ou abrir.</li><li><b>Personalizar cores:</b> paletas prontas (inclusive para daltônicos e para imprimir), escalas e cor de um município.</li><li><b>Nomes:</b> liga e desliga os nomes no mapa; aproxime para ver mais.</li><li><b>Comparar:</b> selecione um município e use “Comparar com outros” (até 4).</li><li><b>Lista:</b> busque (acentos não importam; Enter abre o primeiro), ordene por indicador (“Indicador do mapa” usa o que está colorindo o mapa) e filtre por microrregião. “Recolher painel” libera a tela.</li><li><b>Teclado:</b> Tab percorre os municípios do mapa; setas movem o mapa; + e − aproximam; Esc fecha janelas.</li><li><b>Compartilhar:</b> “Copiar link” guarda o município, o indicador, o ano e a paleta escolhida.</li><li><b>Baixar:</b> CSV, SVG e PNG de alta resolução (sempre com a malha completa).</li></ul></div>`);
+$('#bHelp').onclick=()=>openDlg('Ajuda','Como usar o mapa',`<div class="sec"><ul class="help"><li><b>Mapa:</b> arraste para mover; roda do mouse, pinça ou botões + − para aproximar; ⌂ mostra tudo.</li><li><b>Clique ou toque</b> num município para ver o resumo. “Ver todos os dados” abre população, economia, educação, saneamento e evolução ao longo dos anos.</li><li><b>Cor:</b> escolha a microrregião ou um dos 56 indicadores, separados por tema (população, economia, agropecuária, saneamento, educação, saúde, desenvolvimento humano). Nos indicadores com mais de um ano, use o controle “Ano” na legenda ou “▶ Animar” para ver os anos em sequência. As cores seguem a posição no ranking, e a legenda mostra as faixas. Passe o mouse num município para ver o valor.</li><li><b>Legenda:</b> toque em “Legenda” para recolher ou abrir. Num indicador, clique numa faixa de valores para destacar só os municípios dela (clique de novo para voltar).</li><li><b>Zoom:</b> duplo clique ou duplo toque aproxima naquele ponto.</li><li><b>Personalizar cores:</b> paletas prontas (inclusive para daltônicos e para imprimir), escalas e cor de um município.</li><li><b>Nomes:</b> liga e desliga os nomes no mapa; aproxime para ver mais.</li><li><b>Comparar:</b> selecione um município e use “Comparar com outros” (até 4).</li><li><b>Lista:</b> busque (acentos não importam; Enter abre o primeiro), ordene por indicador (“Indicador do mapa” usa o que está colorindo o mapa) e filtre por microrregião. “Recolher painel” libera a tela.</li><li><b>Teclado:</b> / vai para a busca; Tab percorre os municípios do mapa; setas movem o mapa; + e − aproximam; Esc fecha janelas.</li><li><b>Sem internet:</b> depois da primeira visita, o site abre mesmo offline. No celular, use “Adicionar à tela inicial” no menu do navegador para abrir como app.</li><li><b>Compartilhar:</b> “Copiar link” guarda o município, o indicador, o ano e a paleta escolhida.</li><li><b>Baixar:</b> CSV, SVG e PNG de alta resolução (sempre com a malha completa).</li></ul></div>`);
 $('#dx').onclick=closeDlg;$('#dlg').onclick=e=>{if(e.target.id==='dlg')closeDlg()};
 document.addEventListener('keydown',e=>{
   if(!$('#dlg').hidden){if(e.key==='Escape')return closeDlg();
     if(e.key==='Tab'){const x=[...$('#dlg').querySelectorAll('a[href],button,summary')].filter(n=>n.offsetParent!==null),a=x[0],z=x[x.length-1];if(e.shiftKey&&document.activeElement===a){e.preventDefault();z.focus()}else if(!e.shiftKey&&document.activeElement===z){e.preventDefault();a.focus()}}return}
   if(e.key==='Escape'&&dlm.open){dlm.open=false;dlm.querySelector('summary').focus();return}
   if(e.key==='Escape'&&!$('#cp').hidden){closeCp();return}
+  /* "/" vai para a busca (fora de campos de texto) */
+  if(e.key==='/'&&!/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)){e.preventDefault();if(document.body.classList.contains('side-off'))setSide(true,false);$('#q').focus();return}
   /* teclado no mapa: setas movem, + e − aproximam */
   if(F.length&&e.target.closest&&e.target.closest('#map')){const k={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key];
     if(k){e.preventDefault();st.cx+=k[0]*80*st.upp;st.cy+=k[1]*80*st.upp;view();return}
     if(e.key==='+'||e.key==='='){e.preventDefault();zoomAt(1.6,W/2,H/2);return}
     if(e.key==='-'){e.preventDefault();zoomAt(1/1.6,W/2,H/2);return}}
   if(e.key!=='Enter'&&e.key!==' ')return;const t=e.target,c=t.classList;if(!c)return;
-  if(c.contains('it')||c.contains('lg')){e.preventDefault();t.click()}
+  if(c.contains('it')||c.contains('lg')||c.contains('cl')){e.preventDefault();t.click()}
   else if(c.contains('m')){e.preventDefault();const f=F[t.dataset.i];pick(f,true);f.el.focus()}});
 
 
@@ -520,8 +535,8 @@ function infoHtml(f){
   const dot=hx(C.mun[f.id],microColor(micros.indexOf(f.micro)));
   return `<div class="ih"><i class="dot" style="background:${dot}" aria-hidden="true"></i><div><div class="nm">${f.nome}</div><div class="sb">Microrregião de ${f.micro}</div></div></div>`+
   `<dl class="kv"><div><dt>Código IBGE</dt><dd>${f.id}</dd></div><div><dt>Área aproximada</dt><dd>${fmt(f.area)} km²<small>${rankOf(f)}º maior de ${F.length}</small></dd></div>`+
-  (mode!=='m'?`<div><dt>${esc(MODES[mode].t)}${YR&&MODES[mode].yrs?' ('+YR+')':''}</dt><dd>${esc(valTxt(f))}</dd></div>`:'')+`</dl>`+
-  `<div class="acts"><button id="bMais" class="pri">Ver todos os dados</button><button id="bLink">Copiar link</button><button id="bAddCmp" aria-pressed="${CMP.includes(f)}">${CMP.includes(f)?'Tirar da comparação':'Comparar com outros'}</button></div>`}
+  (mode!=='m'?`<div><dt>${esc(MODES[mode].t)}${YR&&MODES[mode].yrs?' ('+YR+')':''}</dt><dd>${esc(valTxt(f))}${RK.has(f)?`<small>${RK.get(f)}º de ${RN}, do maior para o menor</small>`:''}</dd></div>`:'')+`</dl>`+
+  `<div class="acts"><button id="bMais" class="pri">Ver todos os dados</button><button id="bLink">${SHARE?'Compartilhar':'Copiar link'}</button><button id="bAddCmp" aria-pressed="${CMP.includes(f)}">${CMP.includes(f)?'Tirar da comparação':'Comparar com outros'}</button></div>`}
 function refreshInfo(){if(sel)$('#info').innerHTML=infoHtml(sel);updMini()}
 function updMini(){const m=$('#mini');
   if(!document.body.classList.contains('side-off')||!sel){m.hidden=true;applyLabels();return}
@@ -587,7 +602,11 @@ cpEl.addEventListener('change',e=>{const t=e.target;
   if(t.id==='rinv'){C.inv=t.checked;saveC();refreshColors()}
   else if(t.name==='nm'){C.names=t.value==='t'?'t':'a';saveC();applyLabels()}});
 
-function start(){$('#msg').style.display='flex';$('#msg').textContent='Carregando a malha oficial do IBGE…';
-  load().then(build).catch(err=>{$('#msg').innerHTML=`<b>Não foi possível carregar o mapa.</b><span>${esc(err.message)}</span><small style="max-width:760px;text-align:left;word-break:break-all;color:#555">${diag.slice(-8).map(esc).join('<br>')}</small>`;
+function start(){$('#msg').style.display='flex';$('#msg').classList.add('ld');$('#msg').textContent='Carregando a malha oficial do IBGE…';
+  load().then(build).catch(err=>{$('#msg').classList.remove('ld');$('#msg').innerHTML=`<b>Não foi possível carregar o mapa.</b><span>${esc(err.message)}</span><small>${diag.slice(-8).map(esc).join('<br>')}</small>`;
     const b=document.createElement('button');b.textContent='Tentar de novo';b.onclick=start;$('#msg').appendChild(b)})}
 start();
+
+/* sem internet: avisa; o service worker (sw.js) guarda uma cópia do site para abrir offline */
+const net=()=>{$('#net').hidden=navigator.onLine};addEventListener('online',net);addEventListener('offline',net);net();
+if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
