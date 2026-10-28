@@ -3,14 +3,15 @@
 e grava dados.json (mapa) e indicadores.json (população, área, densidade, PIB) ao lado do index.html. Rode uma vez, com internet:  python3 gerar_dados_offline.py
 Depois, publique a pasta com o dados.json: o site deixa de depender do IBGE.
 Publique a pasta com os DOIS arquivos."""
-import json, time, urllib.request
+import gzip, json, time, urllib.request
 API = "https://servicodados.ibge.gov.br/api/"
 def j(u, tentativas=3):
     # O IBGE às vezes falha; tenta de novo antes de desistir.
     for n in range(tentativas):
         try:
             with urllib.request.urlopen(u, timeout=120) as r:
-                return json.load(r)
+                b = r.read()
+            return json.loads(gzip.decompress(b) if b[:2] == b"\x1f\x8b" else b)  # o IBGE às vezes responde em gzip
         except Exception as e:
             if n == tentativas - 1:
                 raise
@@ -45,7 +46,7 @@ def arred(g, nd=6):
     return g
 for f in feats:
     f["geometry"]["coordinates"] = arred(f["geometry"]["coordinates"])
-json.dump({"muns": muns, "features": feats, "fonte": c}, open("dados.json", "w"), ensure_ascii=False, separators=(",", ":"))
+json.dump({"muns": muns, "features": feats, "fonte": c}, open("dados.json", "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
 print(f"{len(muns)} municípios na lista, {len(feats)} polígonos gravados em dados.json")
 
 def sidra(t, per, v):
@@ -66,7 +67,7 @@ def sidra(t, per, v):
         return {}
 ind = {"pop": sidra(4714, "all", 93), "area": sidra(4714, "all", 614), "den": sidra(4714, "all", 616),
        "est": sidra(6579, "-1", 9324), "pib": sidra(5938, "all", 37)}
-json.dump(ind, open("indicadores.json", "w"), ensure_ascii=False, separators=(",", ":"))
+json.dump(ind, open("indicadores.json", "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
 print({k: len(v) for k, v in ind.items()}, "municípios por indicador em indicadores.json")
 
 # ===== v4: indicadores por categoria (educação e saneamento, Censo 2022) =====
@@ -132,7 +133,7 @@ ind["esg"] = por_categoria(6805, lambda n: n.startswith("domicílios particulare
                            lambda n: "esgotamento" in n)
 ind["lixo"] = por_categoria(6892, lambda n: n.startswith("domicílios particulares permanentes ocupados") and "percentual" not in n,
                             lambda n: "lixo" in n)
-json.dump(ind, open("indicadores.json", "w"), ensure_ascii=False, separators=(",", ":"))
+json.dump(ind, open("indicadores.json", "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
 print({k: len(v) for k, v in ind.items()}, "municípios por indicador (v4)")
 for k in ("esg", "lixo"):
     if ind[k]:

@@ -107,12 +107,13 @@ function build(d){
   $('#sub').textContent=`${F.length} municípios · ${micros.length} microrregiões · ≈ ${fmt(tot)} km²`+(F.length!==51?' (esperado: 51)':'')+(d.fonte?' · fonte: '+d.fonte.replace(API,'').split('?')[0]:'');
   $('#leg').innerHTML=legMicro();
   sty();paint();renderList();fitAll();$('#msg').style.display='none';requestAnimationFrame(()=>{size();fitAll();dbg()});INDP=loadInd().then(()=>{statsC.clear();
-    const has=k=>!!(IND&&IND[k]&&Object.keys(IND[k]).length),ok={p:has('pop'),d:has('den'),b:has('pib'),c:has('pib')&&has('pop'),a:has('alf'),s:has('esg')};
+    addModes();
+    const has=k=>!!(IND&&IND[k]&&Object.keys(IND[k]).length),ok={p:has('pop'),d:has('den'),b:has('pib'),c:has('pib_per_capita'),a:has('analfabetismo_15mais'),s:has('san_esgoto_adequado')};
     Object.entries(ok).forEach(([k,v])=>{const o=$('#bMod option[value='+k+']');if(o)o.disabled=!v});
     [['p',ok.p],['dn',ok.d],['pc',ok.c],['ia',ok.a]].forEach(([k,v])=>{const o=$('#ord option[value='+k+']');if(o)o.disabled=!v});
     $('#ord').title=ok.p?'':'Ordenar por indicadores indisponível: os dados do IBGE não carregaram (gere o indicadores.json ou verifique a internet).';
     if(ORDS[$('#ord').value])renderList();
-    if(HS.m&&HS.m!=='m'&&ok[HS.m]){if(HS.y)YR=HS.y;$('#bMod').value=HS.m;setMode(HS.m)}});
+    if(HS.m&&HS.m!=='m'&&(ok[HS.m]||(/^i_/.test(HS.m)&&MODES[HS.m]))){if(HS.y)YR=HS.y;$('#bMod').value=HS.m;setMode(HS.m)}});
   const hf=HS.c&&F.find(x=>x.id===HS.c);if(hf)pick(hf,true);
   $('#fm').innerHTML='<option value="">Todas as microrregiões</option>'+micros.map(m=>`<option value="${m}">${m}</option>`).join('');
 }
@@ -230,15 +231,22 @@ const MODES={
   p:{t:'População',u:' hab.',d:0,yrs:'pop',v:f=>yv('pop',f)},
   d:{t:'Densidade',u:' hab/km²',d:1,yrs:'den',v:f=>yv('den',f)},
   b:{t:'PIB',u:' mil R$',d:0,yrs:'pib',v:f=>yv('pib',f),note:'Valores da época, sem correção pela inflação: compare a posição dos municípios dentro do mesmo ano, não os valores entre anos.'},
-  c:{t:'PIB per capita (aprox.)',pre:'R$ ',u:'',d:0,v:f=>stats(f).pc||0,note:'Último PIB dividido pela população do Censo 2022.'},
-  a:{t:'Alfabetização 15+ (2022)',u:'%',d:1,v:f=>stats(f).alf||0},
-  s:{t:'Esgoto por rede geral (2022)',u:'%',d:1,v:f=>stats(f).esg||0,note:'Domicílios com esgoto ligado à rede geral ou pluvial.'}
+  c:{t:'PIB per capita',pre:'R$ ',u:'',d:0,yrs:'pib_per_capita',v:f=>yv('pib_per_capita',f),note:'Valores da época. PIB ÷ população estimada do mesmo ano (Censo em 2010 e 2022).'},
+  a:{t:'Alfabetização 15+',u:'%',d:1,yrs:'analfabetismo_15mais',v:f=>{const r=IND&&IND.analfabetismo_15mais&&IND.analfabetismo_15mais[f.id];return r&&r[YR]!=null?100-r[YR]:0},note:'100 − taxa de analfabetismo. 1991–2010: Atlas; 2022: IBGE.'},
+  s:{t:'Esgoto adequado',u:'%',d:1,yrs:'san_esgoto_adequado',v:f=>yv('san_esgoto_adequado',f),note:'Domicílios com rede geral, rede pluvial ou fossa séptica (Censos).'}
 };
+/* v7: um modo de cor para cada indicador do indicadores.json (_meta vem do projeto de coleta, com fonte e avisos) */
+function addModes(){const M=IND&&IND._meta;if(!M||addModes.ok)return;addModes.ok=true;const G={};
+  Object.entries(M).forEach(([k,m])=>{if(!IND[k])return;const id='i_'+k;
+    MODES[id]={t:m.t,u:m.u,d:m.d,yrs:k,z:true,v:f=>{const r=IND[k][f.id];return r&&r[YR]!=null?r[YR]:null},
+      note:'Fonte: '+m.f+(/^(corrente|constante)/.test(m.cc)?' · '+m.cc:'')+'. Avisos na ficha do município.'};
+    (G[m.g]=G[m.g]||[]).push(`<option value="${id}">${esc(m.t)}</option>`)});
+  $('#bMod').insertAdjacentHTML('beforeend',Object.entries(G).map(([g,o])=>`<optgroup label="${esc(g)}">${o.join('')}</optgroup>`).join(''))}
 const valOf=f=>mode==='m'?0:MODES[mode].v(f);
 const fillOf=f=>hx(C.mun[f.id],null)||(mode==='m'?microColor(micros.indexOf(f.micro)):(RAMP&&RAMP.get(f))||'#d9d4c5');
 const legMicro=()=>'<div class="lt">Microrregiões</div><div class="lh">Clique para destacar uma</div>'+micros.map((m,i)=>`<div class="lg" role="button" tabindex="0" aria-pressed="false" data-m="${m}"><i style="background:${microColor(i)}"></i>${m}</div>`).join('');
 const fv=(M,x)=>(M.pre||'')+f1(x,M.d)+(M.u||'');
-function recolor(){const M=MODES[mode],a=F.map(f=>[f,valOf(f)]).filter(x=>x[1]>0).sort((x,y)=>x[1]-y[1]),n=a.length;
+function recolor(){const M=MODES[mode],a=F.map(f=>[f,valOf(f)]).filter(x=>x[1]!=null&&(M.z||x[1]>0)).sort((x,y)=>x[1]-y[1]),n=a.length;
   RAMP=new Map(a.map(([f],i)=>[f,rampAt(n>1?i/(n-1):0)]));
   let cl='';if(n>=5)for(let q=0;q<5;q++){const i0=Math.floor(q*n/5),i1=Math.max(i0,Math.floor((q+1)*n/5)-1);
     cl+=`<div class="cl"><i style="background:${rampAt((q+.5)/5)}"></i>${fv(M,a[i0][1])} – ${fv(M,a[i1][1])}</div>`}
@@ -266,7 +274,7 @@ function syncHash(){try{const q=new URLSearchParams();if(sel)q.set('c',sel.id);i
   const h=q.toString();history.replaceState(null,'',h?'#'+h:location.pathname+location.search)}catch(e){}}
 function readHash(){const h=location.hash.slice(1),o={c:null,m:null,y:null,pal:null,rp:null,iv:false};if(ID.test(h)){o.c=h;return o}
   try{const q=new URLSearchParams(h),c=q.get('c'),m=q.get('m'),y=q.get('y'),pal=q.get('pal'),rp=q.get('rp');
-    if(ID.test(c||''))o.c=c;if(MODEKEYS.includes(m))o.m=m;if(/^\d{4}$/.test(y||''))o.y=y;
+    if(ID.test(c||''))o.c=c;if(MODEKEYS.includes(m)||/^i_[a-z0-9_]+$/.test(m||''))o.m=m;if(/^\d{4}$/.test(y||''))o.y=y;
     if(pal&&hasOwn(PALS,pal)&&pal!=='custom')o.pal=pal;if(rp&&hasOwn(RAMPS,rp)&&rp!=='custom')o.rp=rp;o.iv=q.get('iv')==='1'}catch(e){}return o}
 function pick(f,zoom){sel=f;paint();syncHash();document.title=f.nome+' — Mapa do Vale do Jequitinhonha';
   const rank=[...F].sort((a,b)=>b.area-a.area).indexOf(f)+1;
@@ -319,8 +327,11 @@ function snap(Wp){const pad=1.06,ew=bb.w*pad,eh=bb.h*pad,Hp=Math.round(Wp*eh/ew)
   const xml=new XMLSerializer().serializeToString(c);F.forEach(f=>f.raw=null);
   return{xml,Wp,Hp}}
 function dl(b,n){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click()}
-$('#bCsv').onclick=async()=>{await INDP;const q=v=>'"'+String(v).replace(/"/g,'""')+'"',L=[['codigo_ibge','municipio','microrregiao','area_malha_km2','populacao_2010','populacao_2022','pib_ano','pib_mil_reais','alfabetizacao_15mais_pct','esgoto_rede_ou_fossa_ligada_pct','lixo_coletado_pct','densidade_2022_hab_km2','pib_per_capita_aprox_reais'].join(';')];
-  F.forEach(f=>{const S=stats(f),P=IND&&IND.pop&&IND.pop[f.id]||{};const E=catSum('esg',[f]),Lx=catSum('lixo',[f]),pr=(v,T)=>T>0?(v/T*100).toFixed(1).replace('.',','):'',sg=pr(sumK(E,/^rede geral, rede pluvial/i),E['Total']),lk=Object.keys(Lx).find(n=>/^coletado$/i.test(n)),lx=pr(lk?Lx[lk]:sumK(Lx,/coletado no domic|caçamba/i),Lx['Total']);const B=last(IND&&IND.pib&&IND.pib[f.id]),A=IND&&IND.alf&&IND.alf[f.id],al=A&&A['Alfabetizadas']!=null&&A['Não alfabetizadas']!=null?(A['Alfabetizadas']/(A['Alfabetizadas']+A['Não alfabetizadas'])*100).toFixed(1).replace('.',','):'';L.push([f.id,q(f.nome),q(f.micro),f.area.toFixed(1).replace('.',','),P['2010']??'',P['2022']??'',B?B.p:'',B?B.v:'',al,sg,lx,S.den!=null?S.den.toFixed(2).replace('.',','):'',S.pc!=null?Math.round(S.pc):''].join(';'))});
+/* v7: uma coluna por indicador (ano mais recente com dado); séries completas ficam nos CSV do projeto de coleta */
+$('#bCsv').onclick=async()=>{await INDP;const q=v=>'"'+String(v).replace(/"/g,'""')+'"',c=v=>v==null?'':String(v).replace('.',','),
+  K=Object.keys((IND&&IND._meta)||{}).map(k=>[k,yrsOf(k).pop()]).filter(x=>x[1]),
+  L=[['codigo_ibge','municipio','microrregiao','area_malha_km2',...K.map(([k,y])=>k+'_'+y)].join(';')];
+  F.forEach(f=>L.push([f.id,q(f.nome),q(f.micro),f.area.toFixed(1).replace('.',','),...K.map(([k,y])=>c(at(IND[k][f.id],y)))].join(';')));
   dl(new Blob(['\ufeff'+L.join('\n')],{type:'text/csv;charset=utf-8'}),'jequitinhonha.csv')};
 $('#bSvg').onclick=()=>dl(new Blob([snap(1500).xml],{type:'image/svg+xml'}),'jequitinhonha.svg');
 $('#bPng').onclick=()=>{const{xml,Wp,Hp}=snap(6000),im=new Image();
@@ -339,7 +350,7 @@ async function loadInd(){
   {const d=await INDFILE;if(d&&typeof d==='object'&&d.pop&&typeof d.pop==='object'){IND=d;return}}
   try{const c=localStorage.getItem('jq_ind2');if(c){const d=JSON.parse(c);if(d&&typeof d==='object'&&d.pop){IND=d;return}}}catch(e){}
   const ids=F.map(f=>f.id).join(',');
-  const[pop,area,den,est,pib]=await Promise.all([sidra(4714,'all',93,ids),sidra(4714,'all',614,ids),sidra(4714,'all',616,ids),sidra(6579,'-1',9324,ids),sidra(5938,'all',37,ids)]);
+  const[pop,area,den,est,pib]=await Promise.all([sidra(4714,'all',93,ids),sidra(4714,'all',6318,ids),sidra(4714,'all',614,ids),sidra(6579,'-1',9324,ids),sidra(5938,'all',37,ids)]);
   IND={pop,area,den,est,pib};
   if(Object.keys(pop).length)try{localStorage.setItem('jq_ind2',JSON.stringify(IND))}catch(e){}
 }
@@ -348,30 +359,33 @@ async function loadInd(){
 /* ===== v4: educação e saneamento (Censo 2022; só via indicadores.json) ===== */
 const statsC=new Map();
 function stats(f){let r=statsC.get(f.id);if(r)return r;
-  const g=k=>IND&&IND[k]&&IND[k][f.id],P=g('pop')||{},B=last(g('pib')),A=g('alf'),a=last(g('area')),p22=at(P,'2022'),
-    E=catSum('esg',[f]),Lx=catSum('lixo',[f]),lk=Object.keys(Lx).find(n=>/^coletado$/i.test(n)),lv=lk?Lx[lk]:sumK(Lx,/coletado no domic|caçamba/i),
-    pt=(v,T)=>T>0?v/T*100:null;
-  r={pop:p22,pop10:at(P,'2010'),den:at(g('den'),'2022'),area:a?a.v:null,pib:B,pc:B&&p22?B.v*1000/p22:null,
-    alf:A&&A['Alfabetizadas']!=null&&A['Não alfabetizadas']!=null&&A['Alfabetizadas']+A['Não alfabetizadas']>0?A['Alfabetizadas']/(A['Alfabetizadas']+A['Não alfabetizadas'])*100:null,
-    esg:pt(sumK(E,/^rede geral, rede pluvial/i),E['Total']),lixo:Lx['Total']>0&&lv>0&&lv<=Lx['Total']?lv/Lx['Total']*100:null};
+  const g=k=>IND&&IND[k]&&IND[k][f.id],P=g('pop')||{},B=last(g('pib')),a=last(g('area')),p22=at(P,'2022'),PC=last(g('pib_per_capita')),an=at(g('analfabetismo_15mais'),'2022');
+  r={pop:p22,pop10:at(P,'2010'),den:at(g('den'),'2022'),area:a?a.v:null,pib:B,pc:PC?PC.v:(B&&p22?B.v*1000/p22:null),pcy:PC?PC.p:null,
+    alf:an!=null?100-an:null,esg:at(g('san_esgoto_adequado'),'2022'),lixo:at(g('san_lixo_coletado'),'2022')};
   statsC.set(f.id,r);return r}
-const catSum=(k,L)=>{const o={};L.forEach(x=>{const r=IND&&IND[k]&&IND[k][x.id];if(r)Object.entries(r).forEach(([n,v])=>o[n]=(o[n]||0)+v)});return o};
-const sumK=(o,re)=>Object.entries(o).filter(([n])=>re.test(n)).reduce((s,[,v])=>s+v,0);
 /* ===== v5: menus de dados redesenhados (mesmos dados, melhor organização) ===== */
 const sec=(id,t,body,intro)=>body?`<section id="s-${id}" class="sec" aria-labelledby="h-${id}"><h3 id="h-${id}" tabindex="-1">${t}</h3>${intro?`<p class="intro">${intro}</p>`:''}${body}</section>`:'';
 const hero=a=>{a=a.filter(Boolean);return a.length?'<div class="hero" role="group" aria-label="Números principais">'+a.map(h=>`<div class="stat"><div class="sl">${h[0]}</div><div class="sv">${h[1]}</div>${h[2]?`<div class="su">${h[2]}</div>`:''}</div>`).join('')+'</div>':''};
 /* linha da tabela: [rótulo, valor, explicação opcional, porcentagem opcional para a barra] */
 const tb=rows=>{rows=rows.filter(Boolean);return rows.length?'<table class="t"><tbody>'+rows.map(r=>{const b=r[3]!=null;return `<tr${b?' class="hb"':''}><th scope="row">${r[0]}${r[2]?`<small>${r[2]}</small>`:''}</th><td>${r[1]}</td></tr>`+(b?`<tr class="bb" aria-hidden="true"><td colspan="2"><span class="bar"><i style="width:${Math.max(0,Math.min(100,r[3]))}%"></i></span></td></tr>`:'')}).join('')+'</tbody></table>':''};
+/* v7: percentuais do projeto de coleta; para o Vale (vários municípios) mostra a mediana entre os municípios */
 function socialHtml(L){
-  const ed=[],sa=[],pc=(v,T)=>f1(v/T*100,1)+'%';
-  const a=catSum('alf',L),A=a['Alfabetizadas'],N=a['Não alfabetizadas'];
-  if(A!=null&&N!=null&&A+N>0)ed.push(['Taxa de alfabetização (15+ anos)',pc(A,A+N),'Pessoas de 15 anos ou mais que sabem ler e escrever',A/(A+N)*100],['Pessoas 15+ não alfabetizadas',fmt(N)]);
-  const e=catSum('esg',L),T=e['Total'];
-  if(T>0){const R=[['Rede geral/pluvial ou fossa ligada à rede',/^rede geral, rede pluvial/i],['Fossa séptica não ligada à rede',/não ligada/i],['Fossa rudimentar ou buraco',/rudimentar/i],['Sem banheiro nem sanitário',/não tinham/i]];
-    R.forEach(([t,re])=>{const v=sumK(e,re);if(v>0||Object.keys(e).some(n=>re.test(n)))sa.push([t,pc(v,T),'',v/T*100])})}
-  const l=catSum('lixo',L),TL=l['Total'];
-  if(TL>0){const k=Object.keys(l).find(n=>/^coletado$/i.test(n)),v=k?l[k]:sumK(l,/coletado no domic|caçamba/i);if(v>0&&v<=TL)sa.push(['Lixo coletado (serviço de limpeza ou caçamba)',pc(v,TL),'',v/TL*100])}
-  return sec('edu','Educação',tb(ed))+sec('san','Saneamento',tb(sa),'Porcentagem dos domicílios, Censo 2022')}
+  const med=a=>a.length%2?a[(a.length-1)/2]:(a[a.length/2-1]+a[a.length/2])/2,
+    v=(k,p)=>{const a=L.map(x=>at(IND&&IND[k]&&IND[k][x.id],p||(last(IND&&IND[k]&&IND[k][x.id])||{}).p)).filter(x=>x!=null).sort((x,y)=>x-y);return a.length?med(a):null},
+    ed=[],sa=[],an=v('analfabetismo_15mais','2022'),y=k=>yrsOf(k).pop();
+  if(an!=null)ed.push(['Taxa de alfabetização (15+ anos, 2022)',f1(100-an,1)+'%','Pessoas de 15 anos ou mais que sabem ler e escrever',100-an]);
+  [['ideb_anos_iniciais','IDEB anos iniciais'],['ideb_anos_finais','IDEB anos finais'],['ideb_ensino_medio','IDEB ensino médio']].forEach(([k,t])=>{const x=v(k,y(k));if(x!=null)ed.push([`${t} (${y(k)})`,f1(x,1),'Rede pública, escala de 0 a 10'])});
+  [['san_agua_rede','Água da rede geral'],['san_esgoto_adequado','Esgoto: rede, pluvial ou fossa séptica'],['san_sem_banheiro','Sem banheiro nem sanitário'],['san_lixo_coletado','Lixo coletado']].forEach(([k,t])=>{const x=v(k,'2022');if(x!=null)sa.push([t,f1(x,1)+'%','',x])});
+  const md=L.length>1?' Mediana entre os municípios.':'';
+  return sec('edu','Educação',tb(ed),md.trim())+sec('san','Saneamento',tb(sa),'Porcentagem dos domicílios, Censo 2022.'+md)}
+/* v7: todos os indicadores do indicadores.json, valor mais recente, com fonte e avisos */
+function allHtml(f){const M=IND&&IND._meta;if(!M)return '';const G={};
+  Object.entries(M).forEach(([k,m])=>{const l=last(IND[k]&&IND[k][f.id]);
+    (G[m.g]=G[m.g]||[]).push([esc(m.t),l?f1(l.v,m.d)+esc(m.u):'sem dado',(l?l.p+' · ':'')+esc(m.f)])});
+  const av=Object.values(M).filter(m=>m.av.length).map(m=>`<li><b>${esc(m.t)}</b>: ${m.av.map(esc).join(' ')}</li>`).join('');
+  return sec('tud','Todos os indicadores',Object.entries(G).map(([g,R])=>`<p class="intro"><b>${esc(g)}</b></p>`+tb(R)).join(''),
+    'Valor mais recente de cada indicador. Para ver a série, escolha o indicador em “Colorir o mapa por” e mude o ano na legenda.')+
+    (av?`<details class="srcbox"><summary>Avisos e limitações de cada indicador</summary><ul>${av}</ul></details>`:'')}
 /* mini gráfico de linha (SVG simples); o texto embaixo repete os valores, então o gráfico não é a única informação */
 function spark(pts,fm,titulo){
   pts=pts.filter(q=>q[1]!=null&&isFinite(q[1])).sort((a,b)=>a[0]-b[0]);if(pts.length<2)return '';
@@ -379,7 +393,7 @@ function spark(pts,fm,titulo){
     X=x=>p+(x1>x0?(x-x0)/(x1-x0):0)*(Wd-2*p),Y=y=>Hd-p-(y1>y0?(y-y0)/(y1-y0):.5)*(Hd-2*p),A=pts[0],Z=pts[pts.length-1];
   return `<p class="intro"><b>${titulo}</b></p><svg class="spk" viewBox="0 0 ${Wd} ${Hd}" role="img" aria-label="${titulo}: de ${fm(A[1])} em ${A[0]} para ${fm(Z[1])} em ${Z[0]}"><path d="${pts.map((q,i)=>(i?'L':'M')+X(+q[0]).toFixed(1)+' '+Y(q[1]).toFixed(1)).join('')}" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>${pts.map(q=>`<circle cx="${X(+q[0]).toFixed(1)}" cy="${Y(q[1]).toFixed(1)}" r="3.5" fill="currentColor"/>`).join('')}</svg><p class="intro">${A[0]}: ${fm(A[1])} · ${Z[0]}: ${fm(Z[1])}</p>`}
 const GL='<p class="gl"><b>hab.</b> = habitantes; <b>hab/km²</b> = habitantes por quilômetro quadrado; <b>R$ mi</b> = milhões de reais; <b>R$ bi</b> = bilhões de reais. As barras mostram a porcentagem e não substituem o número ao lado.</p>';
-const SRC='<details class="srcbox"><summary>Fontes dos dados</summary><p>IBGE — Censo Demográfico (tabela SIDRA 4714), Estimativas de População (tabela 6579) e PIB dos Municípios (tabela 5938); alfabetização (tabela 9542), esgotamento (6805) e destino do lixo (6892), Censo 2022. Valores obtidos automaticamente da API do IBGE.</p></details>';
+const SRC='<details class="srcbox"><summary>Fontes dos dados</summary><p>IBGE/SIDRA (Censos 1970–2022, estimativas de população, PIB dos Municípios, Produção Agrícola e Pecuária Municipal, saneamento), Atlas do Desenvolvimento Humano (PNUD/IPEA/FJP, via IPEADATA), INEP (IDEB) e Ministério da Saúde/DATASUS. Números coletados e conferidos no projeto de coleta, com a resposta original de cada fonte guardada; a fonte, a tabela e os avisos de cada indicador estão em “Todos os indicadores”.</p></details>';
 const NODATA='<p class="warn">Não foi possível carregar os dados do IBGE agora (internet ou bloqueio do navegador). Tente de novo mais tarde.</p>';
 let lastFocus=null;
 function openDlg(title,sub,body){
@@ -399,13 +413,13 @@ async function openMun(f){
   const P=IND&&IND.pop&&IND.pop[f.id];if(!P)return openDlg(f.nome,sub,NODATA);
   const p22=at(P,'2022'),p10=at(P,'2010'),a=last(IND.area&&IND.area[f.id]),d=at(IND.den&&IND.den[f.id],'2022'),e=last(IND.est&&IND.est[f.id]);
   const ord=F.map(x=>[x,at(IND.pop[x.id],'2022')]).filter(x=>x[1]!=null).sort((x,y)=>y[1]-x[1]),rk=ord.findIndex(x=>x[0]===f)+1;
-  const mic=F.filter(x=>x.micro===f.micro).length,tot=ord.reduce((s,x)=>s+x[1],0),B=last(IND.pib&&IND.pib[f.id]),pd=B&&(at(P,B.p)||p22),cg=p22&&p10?(Math.pow(p22/p10,1/12)-1)*100:null;
+  const mic=F.filter(x=>x.micro===f.micro).length,tot=ord.reduce((s,x)=>s+x[1],0),B=last(IND.pib&&IND.pib[f.id]),pd=B&&(at(P,B.p)||p22),cg=p22&&p10?(Math.pow(p22/p10,1/12)-1)*100:null,S=stats(f);
   openDlg(f.nome,sub,
     hero([p22!=null&&['População em 2022',fmt(p22),'habitantes (Censo)'],rk&&['Posição no Vale',rk+'º','por população, entre '+ord.length+' municípios'],d!=null&&['Densidade demográfica',f1(d,2),'hab/km², em 2022']])+
     sec('pop','População',tb([p10!=null&&['Censo 2010',fmt(p10)+' hab.'],p22!=null&&p10!=null&&['Variação 2010–2022',(p22>=p10?'+':'')+f1((p22/p10-1)*100)+'%'],e&&[`Estimativa ${e.p}`,fmt(e.v)+' hab.'],cg!=null&&['Crescimento médio anual 2010–2022',f1(cg,2)+'% ao ano'],p22&&tot&&['Participação na população do Vale',f1(p22/tot*100,1)+'%']]))+
-    sec('eco','Economia',tb([B?[`PIB (${B.p})`,'R$ '+f1(B.v/1000,1)+' mi','Produto Interno Bruto, em milhões de reais']:['PIB','indisponível'],B&&pd&&[`PIB per capita${at(P,B.p)?'':' (aprox., pop. 2022)'}`,'R$ '+fmt(B.v*1000/pd),'PIB dividido pelo número de habitantes']]))+
+    sec('eco','Economia',tb([B?[`PIB (${B.p})`,'R$ '+f1(B.v/1000,1)+' mi','Produto Interno Bruto, em milhões de reais']:['PIB','indisponível'],S.pcy?[`PIB per capita (${S.pcy})`,'R$ '+fmt(S.pc),'PIB dividido pela população do mesmo ano']:B&&pd&&[`PIB per capita${at(P,B.p)?'':' (aprox., pop. 2022)'}`,'R$ '+fmt(B.v*1000/pd),'PIB dividido pelo número de habitantes']]))+
     sec('evo','Evolução',spark(Object.entries((IND.pib&&IND.pib[f.id])||{}),v=>'R$ '+f1(v/1000,1)+' mi','PIB (valores da época, sem correção pela inflação)')+spark(Object.entries(P),v=>fmt(v)+' hab.','População (Censos)'))+
-    socialHtml([f])+
+    socialHtml([f])+allHtml(f)+
     sec('ter','Território',tb([a&&[`Área oficial (${a.p})`,f1(a.v,2)+' km²'],['Municípios na microrregião',mic]]))+
     `<p class="ext"><a href="https://www.ibge.gov.br/cidades-e-estados/mg/${f.id}.html" target="_blank" rel="noopener noreferrer">Ver página completa no IBGE Cidades <span class="sr">(abre em nova aba)</span> ↗</a></p>`+GL+SRC)}
 async function openVale(){
@@ -439,9 +453,9 @@ async function openCmp(){
   const S=CMP.map(stats),n=(v,fn)=>v==null?'<span class="sub">indisponível</span>':fn(v),
     R=[['Microrregião',CMP.map(f=>f.micro)],
       ['População em 2022 (hab.)',S.map(x=>n(x.pop,fmt))],['Densidade (hab/km²)',S.map(x=>n(x.den,v=>f1(v,2)))],['Área oficial (km²)',S.map(x=>n(x.area,v=>f1(v,1)))],
-      ['PIB mais recente',S.map(x=>n(x.pib,b=>'R$ '+f1(b.v/1000,1)+' mi ('+b.p+')'))],['PIB per capita (aprox.)',S.map(x=>n(x.pc,v=>'R$ '+fmt(v)))],
-      ['Alfabetização 15+ (%)',S.map(x=>n(x.alf,v=>f1(v,1)+'%'))],['Esgoto por rede geral (%)',S.map(x=>n(x.esg,v=>f1(v,1)+'%'))],['Lixo coletado (%)',S.map(x=>n(x.lixo,v=>f1(v,1)+'%'))]];
-  openDlg('Comparar municípios',CMP.length+' municípios lado a lado',`<div class="cmpw"><table class="t cmp"><thead><tr><th scope="col"><span class="sr">Indicador</span></th>${CMP.map(f=>`<th scope="col">${f.nome}</th>`).join('')}</tr></thead><tbody>${R.map(r=>`<tr><th scope="row">${r[0]}</th>${r[1].map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div><p class="intro">Dados do IBGE. PIB per capita aproximado: último PIB dividido pela população de 2022.</p><div class="acts"><button type="button" id="cmpClear">Limpar comparação</button></div>`+SRC);
+      ['PIB mais recente',S.map(x=>n(x.pib,b=>'R$ '+f1(b.v/1000,1)+' mi ('+b.p+')'))],['PIB per capita (mais recente)',S.map(x=>n(x.pc,v=>'R$ '+fmt(v)+(x.pcy?' ('+x.pcy+')':'')))],
+      ['Alfabetização 15+ (%)',S.map(x=>n(x.alf,v=>f1(v,1)+'%'))],['Esgoto: rede, pluvial ou fossa séptica (%, 2022)',S.map(x=>n(x.esg,v=>f1(v,1)+'%'))],['Lixo coletado (%)',S.map(x=>n(x.lixo,v=>f1(v,1)+'%'))]];
+  openDlg('Comparar municípios',CMP.length+' municípios lado a lado',`<div class="cmpw"><table class="t cmp"><thead><tr><th scope="col"><span class="sr">Indicador</span></th>${CMP.map(f=>`<th scope="col">${f.nome}</th>`).join('')}</tr></thead><tbody>${R.map(r=>`<tr><th scope="row">${r[0]}</th>${r[1].map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div><p class="intro">Dados do IBGE. PIB per capita: PIB dividido pela população do mesmo ano (valores da época).</p><div class="acts"><button type="button" id="cmpClear">Limpar comparação</button></div>`+SRC);
   const cb=$('#cmpClear');if(cb)cb.onclick=()=>{CMP=[];updCmp();refreshInfo();closeDlg()}}
 $('#bCmp').onclick=openCmp;
 $('#bHelp').onclick=()=>openDlg('Ajuda','Como usar o mapa',`<div class="sec"><ul class="help"><li><b>Mapa:</b> arraste para mover; roda do mouse, pinça ou botões + − para aproximar; ⌂ mostra tudo.</li><li><b>Clique ou toque</b> num município para ver o resumo. “Ver todos os dados” abre população, economia, educação, saneamento e evolução ao longo dos anos.</li><li><b>Cor:</b> escolha a microrregião ou um indicador (população, densidade, PIB, PIB per capita, alfabetização, esgoto). Nos indicadores com mais de um ano, use o controle “Ano” na legenda. As cores seguem a posição no ranking, e a legenda mostra as faixas.</li><li><b>Personalizar cores:</b> paletas prontas (inclusive para daltônicos e para imprimir), escalas e cor de um município.</li><li><b>Nomes:</b> liga e desliga os nomes no mapa; aproxime para ver mais.</li><li><b>Comparar:</b> selecione um município e use “Comparar com outros” (até 4).</li><li><b>Lista:</b> busque, ordene por indicador e filtre por microrregião. “Recolher painel” libera a tela.</li><li><b>Compartilhar:</b> “Copiar link” guarda o município, o indicador, o ano e a paleta escolhida.</li><li><b>Baixar:</b> CSV, SVG e PNG de alta resolução (sempre com a malha completa).</li></ul></div>`);
