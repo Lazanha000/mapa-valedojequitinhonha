@@ -4,6 +4,20 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://servicodados.ibge.gov.br; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Mapa do Vale do Jequitinhonha</title>
+<meta name="description" content="Mapa interativo dos 51 municípios da Mesorregião Jequitinhonha (MG) com 56 indicadores socioeconômicos oficiais (IBGE, Atlas do Desenvolvimento Humano, INEP, DATASUS), cada um com fonte, ano e avisos.">
+<meta name="theme-color" content="#8a3b12">
+<link rel="canonical" href="https://lazanha000.github.io/mapa-valedojequitinhonha/">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:title" content="Mapa do Vale do Jequitinhonha">
+<meta property="og:description" content="51 municípios, 56 indicadores oficiais (população, economia, agropecuária, saneamento, educação, saúde e IDHM), com fonte de cada número.">
+<meta property="og:url" content="https://lazanha000.github.io/mapa-valedojequitinhonha/">
+<meta property="og:image" content="https://lazanha000.github.io/mapa-valedojequitinhonha/og.png">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Mapa dos municípios do Vale do Jequitinhonha coloridos por microrregião">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Dataset","name":"Indicadores socioeconômicos dos 51 municípios do Vale do Jequitinhonha (MG)","description":"56 indicadores oficiais por município da Mesorregião Jequitinhonha (IBGE): população, economia, agropecuária, saneamento, educação, saúde e desenvolvimento humano. Fontes: IBGE/SIDRA, Atlas do Desenvolvimento Humano (PNUD/IPEA/FJP, via IPEADATA), INEP e DATASUS.","url":"https://lazanha000.github.io/mapa-valedojequitinhonha/","inLanguage":"pt-BR","isAccessibleForFree":true,"temporalCoverage":"1970/2026","spatialCoverage":{"@type":"Place","name":"Mesorregião Jequitinhonha, Minas Gerais, Brasil"},"isBasedOn":["https://sidra.ibge.gov.br/","http://www.ipeadata.gov.br/","https://www.gov.br/inep/","https://datasus.saude.gov.br/"],"distribution":[{"@type":"DataDownload","encodingFormat":"application/json","contentUrl":"https://lazanha000.github.io/mapa-valedojequitinhonha/indicadores.json"}]}</script>
 <style>
 :root{--bg:#fff;--fg:#1c1b19;--mut:#6b675f;--pn:#f6f3ec;--bd:#ddd8cc;--ac:#8a3b12}
 @media(prefers-color-scheme:dark){:root{--bg:#161513;--fg:#ece8df;--mut:#a29c8f;--pn:#1f1d1a;--bd:#3a362f;--ac:#e0914f}}
@@ -190,31 +204,54 @@ table.t{width:100%;border-collapse:collapse;font-size:16px}
 .help{margin:12px 0 0;padding-left:20px}.help li{margin:0 0 10px}
 @media(max-width:800px){#bPal{order:-1}}
 @media print{#bar2,.tlw{display:none}}
+
+/* ===== v8 ===== */
+:root{--map:#f4f1ea}
+@media(prefers-color-scheme:dark){:root{--map:#2b2925}}
+#stage,#msg{background:var(--map)}#msg{color:var(--fg)}#msg small{color:var(--mut)!important}
+.skip{position:absolute;left:8px;top:-80px;z-index:30;background:var(--bg);color:var(--fg);padding:8px 12px;border:2px solid var(--ac);border-radius:6px;font-weight:600}.skip:focus{top:8px}
+#legT{display:flex;width:100%;justify-content:space-between;gap:8px;background:none;border:0;border-radius:4px;padding:0 0 3px;min-height:0;color:#555;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+#legT::after{content:'▾'}#leg.lc #legT::after{content:'▸'}#leg.lc #legT{padding:0}#leg.lc #legB{display:none}
+.tlw button{margin-top:4px;padding:2px 10px;min-height:0;background:#fff;color:#222;border-color:#bbb}
+#dlm summary{list-style:none;background:var(--pn);border:1px solid var(--bd);border-radius:6px;padding:5px 10px;cursor:pointer}
+#dlm summary::-webkit-details-marker{display:none}#dlm summary:hover{border-color:var(--ac)}
+.dlp{position:fixed;z-index:12;display:flex;flex-direction:column;gap:4px;background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:6px;box-shadow:0 6px 20px #0004;min-width:220px}
+.dlp button{text-align:left}
+@media(pointer:coarse){#dlm summary{min-height:44px;display:flex;align-items:center}#legT{min-height:32px}.tlw button{min-height:36px}}
+#bMod{max-width:270px;text-overflow:ellipsis}
+/* legenda no canto inferior direito: o vale vai de sudoeste a nordeste, então esse canto fica vazio */
+#leg{left:auto;right:10px;max-height:calc(100% - 190px);overflow:auto}
+@media(max-width:800px){#leg{left:auto;right:6px}}
+@media(max-width:800px){#bMod{flex:1 1 100%;max-width:none}#hb>*{flex:none}.sfn{display:none}}
+@media print{#dlm,.skip{display:none!important}}
 </style></head><body>
+<a class="skip" href="#q" data-skip="q">Pular para a lista de municípios</a><a class="skip" href="#map" data-skip="map">Pular para o mapa</a>
+<noscript><p style="padding:16px;margin:0;background:#fff4d6;color:#3a2a00">Este mapa precisa de JavaScript ligado no navegador para funcionar.</p></noscript>
 <header>
 <h1>Vale do Jequitinhonha<small id="sub">carregando…</small></h1>
-<div id="hb"><button id="bCor" class="on" aria-pressed="true">Cores</button><button id="bNom" aria-pressed="false">Nomes</button><select id="bMod" aria-label="Colorir o mapa por"><option value="m">Cor: microrregião</option><option value="p" disabled>Cor: população</option><option value="d" disabled>Cor: densidade</option><option value="b" disabled>Cor: PIB</option><option value="c" disabled>Cor: PIB per capita</option><option value="a" disabled>Cor: alfabetização</option><option value="s" disabled>Cor: esgoto adequado</option></select>
-<button id="bPal" aria-expanded="false" aria-controls="cp">Personalizar cores</button><button id="bVale">Dados do Vale</button><button id="bCsv">Baixar CSV</button><button id="bCmp" hidden>Comparar (0)</button><button id="bHelp" aria-label="Ajuda">? Ajuda</button><button id="bSvg">Baixar SVG</button><button id="bPng">Baixar PNG (alta)</button></div>
+<select id="bMod" aria-label="Colorir o mapa por"><option value="m">Cor: microrregião</option><option value="p" disabled>Cor: população</option><option value="d" disabled>Cor: densidade</option><option value="b" disabled>Cor: PIB</option><option value="c" disabled>Cor: PIB per capita</option><option value="a" disabled>Cor: alfabetização</option><option value="s" disabled>Cor: esgoto adequado</option></select>
+<div id="hb"><button id="bCor" class="on" aria-pressed="true">Cores</button><button id="bNom" aria-pressed="false">Nomes</button>
+<button id="bPal" aria-expanded="false" aria-controls="cp">Personalizar cores</button><button id="bVale">Dados do Vale</button><button id="bCmp" hidden>Comparar (0)</button><details id="dlm"><summary>Baixar ▾</summary><div class="dlp"><button id="bCsv">Tabela CSV (abre no Excel)</button><button id="bSvg">Mapa em SVG (vetor)</button><button id="bPng">Mapa em PNG (alta resolução)</button></div></details><button id="bHelp" aria-label="Ajuda">? Ajuda</button></div>
 </header>
 <main>
 <aside id="side"><div id="ah"><strong>Municípios</strong><button id="bSide" aria-expanded="true" aria-controls="side">‹ Recolher painel</button></div>
-<div id="bar"><input id="q" type="search" aria-label="Buscar município" placeholder="Buscar município…"><select id="ord" aria-label="Ordenar a lista por"><option value="a">A–Z</option><option value="b">Área ↓</option><option value="p" disabled>População ↓</option><option value="dn" disabled>Densidade ↓</option><option value="pc" disabled>PIB per capita ↓</option><option value="ia" disabled>Alfabetização ↓</option></select></div>
+<div id="bar"><input id="q" type="search" aria-label="Buscar município" placeholder="Buscar município…"><select id="ord" aria-label="Ordenar a lista por"><option value="a">A–Z</option><option value="b">Área ↓</option><option value="p" disabled>População ↓</option><option value="dn" disabled>Densidade ↓</option><option value="pc" disabled>PIB per capita ↓</option><option value="ia" disabled>Alfabetização ↓</option><option value="mp" disabled>Indicador do mapa ↓</option></select></div>
 <div id="bar2"><select id="fm" aria-label="Filtrar por microrregião"><option value="">Todas as microrregiões</option></select></div>
 <div id="list"></div>
 <div id="info" aria-live="polite"><p class="empty">Clique em um município no mapa ou na lista para ver os dados dele.</p></div>
 </aside>
 <div id="stage">
-<svg id="map" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Mapa dos municípios do Vale do Jequitinhonha. Use Tab para percorrer os municípios e Enter para selecionar."><style id="sty"></style><g id="o"></g><g id="m"></g><g id="l" fill="#222" stroke="#fff" paint-order="stroke" text-anchor="middle" font-weight="600" style="display:none;pointer-events:none"></g></svg>
+<svg id="map" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Mapa dos municípios do Vale do Jequitinhonha. Use Tab para percorrer os municípios, Enter para selecionar, setas para mover o mapa e + ou − para aproximar."><style id="sty"></style><g id="o"></g><g id="m"></g><g id="l" fill="#222" stroke="#fff" paint-order="stroke" text-anchor="middle" font-weight="600" style="display:none;pointer-events:none"></g></svg>
 <div id="ctl"><button id="zi" aria-label="Aproximar">+</button><button id="zo" aria-label="Afastar">−</button><button id="zr" title="Ver tudo" aria-label="Ver o mapa inteiro">⌂</button></div>
 <button id="openSide" hidden aria-controls="side" aria-expanded="false" aria-label="Abrir a lista de municípios">☰ Lista</button>
 <div id="mini" hidden></div>
 <div id="nhint" role="status" hidden></div>
 <div id="cp" role="dialog" aria-labelledby="cpt" tabindex="-1" hidden><div class="cph"><h2 id="cpt">Cores e nomes</h2><button id="cpx" aria-label="Fechar o painel de cores">✕ Fechar</button></div><div id="cpb"></div></div>
-<div id="leg"></div>
+<div id="leg"><button type="button" id="legT" aria-expanded="true" aria-controls="legB">Legenda</button><div id="legB"></div></div>
 <div id="msg">Carregando a malha oficial do IBGE…</div>
 </div>
 </main>
-<footer>Fonte: malhas e localidades do IBGE (servicodados.ibge.gov.br), qualidade máxima, sem simplificação. Áreas do mapa calculadas a partir da malha são aproximadas. Dados de população, área e densidade: IBGE (Censos e Estimativas, API SIDRA), carregados ao abrir.</footer>
+<footer>Mapa: malha municipal oficial do IBGE, qualidade máxima (áreas calculadas a partir dela são aproximadas). Indicadores: IBGE/SIDRA, Atlas do Desenvolvimento Humano (PNUD/IPEA/FJP, via IPEADATA), INEP e DATASUS, conferidos com a resposta original de cada fonte; fonte e avisos de cada número na ficha do município.</footer>
 <div id="dlg" hidden><div class="box" role="dialog" aria-modal="true" aria-labelledby="dtitle"><div class="dhead"><div><h2 id="dtitle"></h2><div class="dsub" id="dsub"></div></div><button id="dx" aria-label="Fechar">✕ Fechar</button></div><nav id="dnav" aria-label="Ir para uma seção" hidden></nav><div id="dbody"></div></div></div>
 <div id="tip"></div><div id="err" role="alert"></div>
 <script src="app.js" defer></script></body></html>

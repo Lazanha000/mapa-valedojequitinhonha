@@ -103,9 +103,11 @@ function build(d){
   $('#m').innerHTML=F.map((f,i)=>`<path class="m" data-i="${i}" tabindex="0" role="button" aria-label="${f.nome}, microrregião de ${f.micro}"/>`).join('');
   $('#l').innerHTML=F.map(f=>`<text x="${f.pin[0].toFixed(1)}" y="${f.pin[1].toFixed(1)}" dy=".35em" style="display:none">${esc(f.nome)}</text>`).join('');
   [...document.querySelectorAll('#m path')].forEach((p,i)=>F[i].el=p);[...document.querySelectorAll('#o path')].forEach((p,i)=>F[i].oel=p);[...document.querySelectorAll('#l text')].forEach((t,i)=>F[i].tx=t);
+  F.forEach(f=>f.key=nrm(f.nome));
   const tot=F.reduce((s,f)=>s+f.area,0);
-  $('#sub').textContent=`${F.length} municípios · ${micros.length} microrregiões · ≈ ${fmt(tot)} km²`+(F.length!==51?' (esperado: 51)':'')+(d.fonte?' · fonte: '+d.fonte.replace(API,'').split('?')[0]:'');
-  $('#leg').innerHTML=legMicro();
+  $('#sub').innerHTML=esc(`${F.length} municípios · ${micros.length} microrregiões · ≈ ${fmt(tot)} km²`+(F.length!==51?' (esperado: 51)':''))+'<span class="sfn"> · malha oficial do IBGE</span>';
+  $('#sub').title=d.fonte?'Fonte da malha: '+d.fonte.replace(API,'').split('?')[0]:'';
+  $('#legB').innerHTML=legMicro();
   sty();paint();renderList();fitAll();$('#msg').style.display='none';requestAnimationFrame(()=>{size();fitAll();dbg()});INDP=loadInd().then(()=>{statsC.clear();
     addModes();
     const has=k=>!!(IND&&IND[k]&&Object.keys(IND[k]).length),ok={p:has('pop'),d:has('den'),b:has('pib'),c:has('pib_per_capita'),a:has('analfabetismo_15mais'),s:has('san_esgoto_adequado')};
@@ -113,6 +115,7 @@ function build(d){
     [['p',ok.p],['dn',ok.d],['pc',ok.c],['ia',ok.a]].forEach(([k,v])=>{const o=$('#ord option[value='+k+']');if(o)o.disabled=!v});
     $('#ord').title=ok.p?'':'Ordenar por indicadores indisponível: os dados do IBGE não carregaram (gere o indicadores.json ou verifique a internet).';
     if(ORDS[$('#ord').value])renderList();
+    if(DUP[HS.m]&&MODES['i_'+DUP[HS.m]])HS.m='i_'+DUP[HS.m];
     if(HS.m&&HS.m!=='m'&&(ok[HS.m]||(/^i_/.test(HS.m)&&MODES[HS.m]))){if(HS.y)YR=HS.y;$('#bMod').value=HS.m;setMode(HS.m)}});
   const hf=HS.c&&F.find(x=>x.id===HS.c);if(hf)pick(hf,true);
   $('#fm').innerHTML='<option value="">Todas as microrregiões</option>'+micros.map(m=>`<option value="${m}">${m}</option>`).join('');
@@ -153,7 +156,7 @@ function geo(x0,y0,w,h){
   const L=Math.max(0,Math.min(LMAX,Math.ceil(Math.log2(fit/st.upp)-1e-9))),mg=Math.max(w,h)*.05+4*st.upp,
     A=x0-mg,B=x0+w+mg,Cc=y0-mg,D=y0+h+mg;
   for(const f of F){
-    const v=f===sel||(f.bb[0]<B&&f.bb[2]>A&&f.bb[1]<D&&f.bb[3]>Cc);
+    const v=f===sel||f.el===document.activeElement||(f.bb[0]<B&&f.bb[2]>A&&f.bb[1]<D&&f.bb[3]>Cc);
     if(v!==f.vis){f.vis=v;const ds=v?'':'none';f.el.style.display=ds;f.oel.style.display=ds}
     if(v&&f.curL!==L){const d=lodD(f,L);f.el.setAttribute('d',d);f.oel.setAttribute('d',d);f.curL=L}}}
 /* Dados vindos de fora (API, arquivos, cache): só aceita o formato esperado e remove caracteres que poderiam virar HTML. */
@@ -165,6 +168,8 @@ function validar(d){
   return{muns,features:d.features,fonte:limpa(d.fonte||'')}}
 /* ===== v5: nomes no mapa (ponto dentro do município, sem sobreposição) ===== */
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+/* busca sem acento e sem maiúsculas: "aracuai" acha "Araçuaí" */
+const nrm=s=>String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
 /* Ponto mais "para dentro" do maior contorno (centro do maior círculo inscrito, aproximado).
    O centroide comum pode cair FORA de municípios de formato torto; este não cai. */
 function pole(pts,cen){
@@ -206,7 +211,8 @@ function applyLabels(){
     if(on){t.setAttribute('font-weight',f===sel?'800':'600');t.setAttribute('fill',f===sel?'#7a0014':'#222')}});
   const inView=F.filter(f=>{const x=(f.pin[0]-st.cx)/st.upp+W/2,y=(f.pin[1]-st.cy)/st.upp+H/2;return x>=0&&x<=W&&y>=0&&y<=H}).length;
   h.hidden=all||vis.size>=inView;
-  h.textContent=`Mostrando ${vis.size} de ${inView} nomes na tela. Aproxime o mapa para ver os demais, ou escolha “Todos os nomes” em Personalizar cores.`}
+  const tx=`Mostrando ${vis.size} de ${inView} nomes na tela. Aproxime o mapa para ver os demais, ou escolha “Todos os nomes” em Personalizar cores.`;
+  if(h.textContent!==tx)h.textContent=tx}
 function fillExportLabels(l,cx,cy,upp,Wp,Hp,s){
   const fs=12*s,vis=layoutLabels(cx,cy,upp,Wp,Hp,fs,C.names==='t');
   l.setAttribute('font-size',fs*upp);l.setAttribute('stroke-width',fs*.3*upp);l.setAttribute('stroke-linejoin','round');
@@ -220,7 +226,8 @@ function viewNow(){raf=0;if(!bb)return;const w=st.upp*W,h=st.upp*H,x0=st.cx-w/2,
   if(!lastU||Math.abs(st.upp/lastU-1)>.004){lastU=st.upp;sty()}
   geo(x0,y0,w,h);clearTimeout(labT);labT=setTimeout(applyLabels,110)}
 function size(){const r=svg.getBoundingClientRect(),s=$('#stage');W=r.width||s.clientWidth||1;H=r.height||s.clientHeight||1}
-function fitAll(){size();const nf=Math.max(bb.w/W,bb.h/H)*1.08;if(!fit||Math.abs(nf/fit-1)>.02)F.forEach(f=>{f.lod.clear();f.curL=-1});fit=nf;st={cx:bb.cx,cy:bb.cy,upp:fit};lastU=0;view()}
+/* deixa ~60 px à direita para os botões de zoom não cobrirem o mapa */
+function fitAll(){size();const pr=W>260?60:0,nf=Math.max(bb.w/(W-pr),bb.h/H)*1.06;if(!fit||Math.abs(nf/fit-1)>.02)F.forEach(f=>{f.lod.clear();f.curL=-1});fit=nf;st={cx:bb.cx+pr/2*nf,cy:bb.cy,upp:fit};lastU=0;view()}
 function zoomAt(f,px,py){const u=Math.min(fit*1.6,Math.max(fit/300,st.upp/f));
   const wx=st.cx+(px-W/2)*st.upp,wy=st.cy+(py-H/2)*st.upp;st.cx=wx-(px-W/2)*u;st.cy=wy-(py-H/2)*u;st.upp=u;view()}
 let mode='m',RAMP=null,YR=null;
@@ -241,7 +248,12 @@ function addModes(){const M=IND&&IND._meta;if(!M||addModes.ok)return;addModes.ok
     MODES[id]={t:m.t,u:m.u,d:m.d,yrs:k,z:true,v:f=>{const r=IND[k][f.id];return r&&r[YR]!=null?r[YR]:null},
       note:'Fonte: '+m.f+(/^(corrente|constante)/.test(m.cc)?' · '+m.cc:'')+'. Avisos na ficha do município.'};
     (G[m.g]=G[m.g]||[]).push(`<option value="${id}">${esc(m.t)}</option>`)});
-  $('#bMod').insertAdjacentHTML('beforeend',Object.entries(G).map(([g,o])=>`<optgroup label="${esc(g)}">${o.join('')}</optgroup>`).join(''))}
+  $('#bMod').insertAdjacentHTML('beforeend',Object.entries(G).map(([g,o])=>`<optgroup label="${esc(g)}">${o.join('')}</optgroup>`).join(''));
+  Object.entries(DUP).forEach(([k,v])=>{const o=$('#bMod option[value='+k+']');if(o&&MODES['i_'+v])o.remove()})}
+/* modos antigos que são cópia exata de um indicador do indicadores.json: saem do menu, mas links antigos (#m=p...) continuam valendo */
+const DUP={p:'pop_censo',d:'densidade',b:'pib',c:'pib_per_capita',s:'san_esgoto_adequado'};
+const noVal=(M,v)=>v==null||(!M.z&&v<=0);
+const valTxt=f=>{const M=MODES[mode],v=valOf(f);return noVal(M,v)?'sem dado':fv(M,v)};
 const valOf=f=>mode==='m'?0:MODES[mode].v(f);
 const fillOf=f=>hx(C.mun[f.id],null)||(mode==='m'?microColor(micros.indexOf(f.micro)):(RAMP&&RAMP.get(f))||'#d9d4c5');
 const legMicro=()=>'<div class="lt">Microrregiões</div><div class="lh">Clique para destacar uma</div>'+micros.map((m,i)=>`<div class="lg" role="button" tabindex="0" aria-pressed="false" data-m="${m}"><i style="background:${microColor(i)}"></i>${m}</div>`).join('');
@@ -255,13 +267,21 @@ function recolor(){const M=MODES[mode],a=F.map(f=>[f,valOf(f)]).filter(x=>x[1]!=
     (cl?`<div class="cls" aria-label="Faixas, cada uma com cerca de 1/5 dos municípios">${cl}</div>`:'')+
     `<div class="lh" style="max-width:170px;margin-top:3px">Cor por posição no ranking (não proporcional). Cada faixa tem cerca de 1/5 dos municípios. Cinza: sem dado.${M.note?' '+M.note:''}</div>`;
   paint()}
-function setMode(v){mode=MODES[v]?v:'m';const L=$('#leg');
-  if(mode==='m'){RAMP=null;L.innerHTML=legMicro();syncHash();paint();return}
+function setMode(v){mode=MODES[v]?v:'m';const L=$('#legB');stopPlay();
+  const om=$('#ord option[value=mp]');om.disabled=mode==='m';if(mode==='m'&&$('#ord').value==='mp')$('#ord').value='a';
+  if(mode==='m'){RAMP=null;L.innerHTML=legMicro();syncHash();paint();renderList();refreshInfo();return}
   const M=MODES[mode],ys=M.yrs?yrsOf(M.yrs):[];
   if(M.yrs&&!ys.includes(YR))YR=ys[ys.length-1]||null;
-  L.innerHTML='<div id="lgb"></div>'+(ys.length>1?`<div class="tlw"><label for="yr">Ano: <b id="yl">${YR}</b></label><input type="range" id="yr" min="0" max="${ys.length-1}" step="1" value="${ys.indexOf(YR)}"></div>`:'<div id="lgy"></div>');
-  recolor();syncHash()}
-$('#leg').addEventListener('input',e=>{if(e.target.id!=='yr'||mode==='m')return;const ys=yrsOf(MODES[mode].yrs),y=ys[+e.target.value];if(!y)return;YR=y;$('#yl').textContent=y;recolor();syncHash()});
+  L.innerHTML='<div id="lgb"></div>'+(ys.length>1?`<div class="tlw"><label for="yr">Ano: <b id="yl">${YR}</b></label><input type="range" id="yr" min="0" max="${ys.length-1}" step="1" value="${ys.indexOf(YR)}"><button type="button" id="yplay" aria-pressed="false">▶ Animar</button></div>`:'<div id="lgy"></div>');
+  recolor();syncHash();renderList();refreshInfo()}
+function setYear(i){const ys=yrsOf(MODES[mode].yrs),y=ys[i];if(!y)return;YR=y;$('#yr').value=i;$('#yl').textContent=y;recolor();syncHash();if($('#ord').value==='mp')renderList();refreshInfo()}
+/* "Animar": avança um ano a cada 0,9 s e para no último */
+let PLAY=0;
+function stopPlay(){clearInterval(PLAY);PLAY=0;const b=$('#yplay');if(b){b.textContent='▶ Animar';b.setAttribute('aria-pressed','false')}}
+function togglePlay(b){if(PLAY)return stopPlay();const r=$('#yr');if(+r.value>=+r.max)setYear(0);
+  b.textContent='❚❚ Parar';b.setAttribute('aria-pressed','true');
+  PLAY=setInterval(()=>{const r=$('#yr');if(!r||+r.value>=+r.max)return stopPlay();setYear(+r.value+1)},900)}
+$('#leg').addEventListener('input',e=>{if(e.target.id!=='yr'||mode==='m')return;setYear(+e.target.value)});
 function refreshColors(){if(!F.length)return;setMode(mode);renderList()}
 $('#bMod').onchange=e=>setMode(e.target.value);
 function paint(){F.forEach(f=>{f.el.setAttribute('fill',colored?fillOf(f):'#d9d4c5');
@@ -277,24 +297,39 @@ function readHash(){const h=location.hash.slice(1),o={c:null,m:null,y:null,pal:n
     if(ID.test(c||''))o.c=c;if(MODEKEYS.includes(m)||/^i_[a-z0-9_]+$/.test(m||''))o.m=m;if(/^\d{4}$/.test(y||''))o.y=y;
     if(pal&&hasOwn(PALS,pal)&&pal!=='custom')o.pal=pal;if(rp&&hasOwn(RAMPS,rp)&&rp!=='custom')o.rp=rp;o.iv=q.get('iv')==='1'}catch(e){}return o}
 function pick(f,zoom){sel=f;paint();syncHash();document.title=f.nome+' — Mapa do Vale do Jequitinhonha';
-  const rank=[...F].sort((a,b)=>b.area-a.area).indexOf(f)+1;
   $('#info').innerHTML=infoHtml(f);updMini();if(!$('#cp').hidden)renderCp();
-  document.querySelectorAll('#list .it').forEach(e=>e.classList.toggle('s',e.dataset.id==f.id));
+  document.querySelectorAll('#list .it').forEach(e=>{const s=e.dataset.id==f.id;e.classList.toggle('s',s);if(s)e.setAttribute('aria-current','true');else e.removeAttribute('aria-current')});
   if(zoom){size();st.upp=Math.min(fit,Math.max(fit/300,Math.max((f.bb[2]-f.bb[0])/W,(f.bb[3]-f.bb[1])/H)*1.6));st.cx=(f.bb[0]+f.bb[2])/2;st.cy=(f.bb[1]+f.bb[3])/2;view()}}
 const pp=f=>(IND&&IND.pop&&IND.pop[f.id]&&IND.pop[f.id]['2022'])||0;
-const ORDS={p:[f=>pp(f),v=>fmt(v)+' hab.'],dn:[f=>stats(f).den||0,v=>f1(v,1)+' hab/km²'],pc:[f=>stats(f).pc||0,v=>'R$ '+fmt(v)],ia:[f=>stats(f).alf||0,v=>f1(v,1)+'%']};
-function renderList(){const q=$('#q').value.toLowerCase(),o=$('#ord').value,fmv=$('#fm').value;let h='';
-  const L=F.filter(f=>f.nome.toLowerCase().includes(q)&&(!fmv||f.micro===fmv));
-  if(ORDS[o])h=[...L].sort((a,b)=>ORDS[o][0](b)-ORDS[o][0](a)).map(it).join('');
+const ORDS={p:[f=>pp(f),v=>fmt(v)+' hab.'],dn:[f=>stats(f).den||0,v=>f1(v,1)+' hab/km²'],pc:[f=>stats(f).pc||0,v=>'R$ '+fmt(v)],ia:[f=>stats(f).alf||0,v=>f1(v,1)+'%'],
+  mp:[f=>{const v=valOf(f);return mode==='m'||noVal(MODES[mode],v)?-Infinity:v},v=>v===-Infinity?'sem dado':fv(MODES[mode],v)]};
+function renderList(){const q=nrm($('#q').value.trim()),o=$('#ord').value,fmv=$('#fm').value;let h='';
+  const L=F.filter(f=>f.key.includes(q)&&(!fmv||f.micro===fmv));
+  if(ORDS[o])h=[...L].sort((a,b)=>(ORDS[o][0](b)-ORDS[o][0](a))||a.nome.localeCompare(b.nome,'pt')).map(it).join('');
   else if(o==='b')h=[...L].sort((a,b)=>b.area-a.area).map(it).join('');
   else micros.forEach((m,i)=>{const l=L.filter(f=>f.micro===m).sort((a,b)=>a.nome.localeCompare(b.nome,'pt'));
     if(l.length)h+=`<h3><i style="background:${microColor(i)}"></i>${m} (${l.length})</h3>`+l.map(it).join('')});
   $('#list').innerHTML=h||'<p>Nada encontrado.</p>'}
-const it=f=>{const o=ORDS[$('#ord').value];return `<div class="it${f===sel?' s':''}" role="button" tabindex="0" data-id="${f.id}">${f.nome}<span>${o?o[1](o[0](f)):fmt(f.area)+' km²'}</span></div>`};
+const it=f=>{const o=ORDS[$('#ord').value];return `<div class="it${f===sel?' s':''}" role="button" tabindex="0" data-id="${f.id}"${f===sel?' aria-current="true"':''}>${f.nome}<span>${o?o[1](o[0](f)):fmt(f.area)+' km²'}</span></div>`};
 
 $('#list').onclick=e=>{const d=e.target.closest('.it');if(d)pick(F.find(f=>f.id==d.dataset.id),true)};
 $('#q').oninput=renderList;$('#ord').onchange=renderList;$('#fm').onchange=renderList;
-$('#leg').onclick=e=>{const d=e.target.closest('.lg');if(!d)return;focus=focus===d.dataset.m?null:d.dataset.m;paint()};
+$('#q').onkeydown=e=>{if(e.key!=='Enter')return;const d=$('#list .it');if(d){e.preventDefault();d.click()}};
+$('#leg').onclick=e=>{
+  if(e.target.id==='legT'){const c=$('#leg').classList.toggle('lc');e.target.setAttribute('aria-expanded',String(!c));applyLabels();return}
+  if(e.target.id==='yplay')return togglePlay(e.target);
+  const d=e.target.closest('.lg');if(!d)return;focus=focus===d.dataset.m?null:d.dataset.m;paint()};
+/* no celular a legenda começa recolhida (ela cobria parte do mapa) */
+if(matchMedia('(max-width:800px)').matches){$('#leg').classList.add('lc');$('#legT').setAttribute('aria-expanded','false')}
+/* menu "Baixar": abre embaixo do botão, fecha ao escolher, ao clicar fora ou com Esc */
+const dlm=$('#dlm');
+dlm.addEventListener('toggle',()=>{if(!dlm.open)return;const r=dlm.querySelector('summary').getBoundingClientRect(),p=dlm.querySelector('.dlp');
+  p.style.top=r.bottom+4+'px';p.style.left=Math.max(8,Math.min(r.left,innerWidth-p.offsetWidth-8))+'px'});
+dlm.querySelector('.dlp').addEventListener('click',()=>{dlm.open=false});
+document.addEventListener('click',e=>{if(dlm.open&&!dlm.contains(e.target))dlm.open=false});
+$('#hb').addEventListener('scroll',()=>{dlm.open=false});
+document.querySelectorAll('.skip').forEach(a=>a.onclick=e=>{e.preventDefault();
+  const t=a.dataset.skip==='q'?(document.body.classList.contains('side-off')?$('#openSide'):$('#q')):(sel?sel.el:$('#m path'));if(t)t.focus()});
 $('#bCor').onclick=e=>{colored=!colored;e.target.classList.toggle('on',colored);e.target.setAttribute('aria-pressed',colored);paint()};
 $('#bNom').onclick=e=>{showLab=!showLab;e.target.classList.toggle('on',showLab);e.target.setAttribute('aria-pressed',showLab);applyLabels()};
 $('#zi').onclick=()=>zoomAt(1.6,W/2,H/2);$('#zo').onclick=()=>zoomAt(1/1.6,W/2,H/2);$('#zr').onclick=fitAll;
@@ -303,7 +338,7 @@ const ptr=new Map();let moved=0,pd=0;
 svg.addEventListener('pointerdown',e=>{ptr.set(e.pointerId,[e.clientX,e.clientY]);moved=0;try{svg.setPointerCapture(e.pointerId)}catch(_){}pd=0;svg.style.cursor='grabbing'});
 svg.addEventListener('pointermove',e=>{
   const tip=$('#tip');
-  if(!ptr.size){const t=e.target.closest&&e.target.closest('.m');if(t){tip.style.display='block';tip.style.left=e.clientX+12+'px';tip.style.top=e.clientY+12+'px';tip.textContent=F[t.dataset.i].nome}else tip.style.display='none';return}
+  if(!ptr.size){const t=e.target.closest&&e.target.closest('.m');if(t){tip.style.display='block';tip.style.left=e.clientX+12+'px';tip.style.top=e.clientY+12+'px';const f=F[t.dataset.i];tip.textContent=f.nome+(mode!=='m'?': '+valTxt(f)+(YR&&MODES[mode].yrs?' ('+YR+')':''):'')}else tip.style.display='none';return}
   tip.style.display='none';const p=ptr.get(e.pointerId);if(!p)return;
   const dx=e.clientX-p[0],dy=e.clientY-p[1];moved+=Math.abs(dx)+Math.abs(dy);
   if(ptr.size===1){st.cx-=dx*st.upp;st.cy-=dy*st.upp;view()}
@@ -314,19 +349,21 @@ svg.addEventListener('pointerup',e=>{ptr.delete(e.pointerId);svg.style.cursor='g
   if(moved<6&&!ptr.size){const t=document.elementFromPoint(e.clientX,e.clientY);const m=t&&t.closest&&t.closest('.m');if(m)pick(F[m.dataset.i],false)}});
 svg.addEventListener('pointercancel',e=>ptr.delete(e.pointerId));
 svg.addEventListener('pointerleave',()=>$('#tip').style.display='none');
-new ResizeObserver(()=>{if(F.length){const c=[st.cx,st.cy,st.upp];size();view()}}).observe(svg);
+new ResizeObserver(()=>{if(F.length){size();view()}}).observe(svg);
 
 function snap(Wp){const pad=1.06,ew=bb.w*pad,eh=bb.h*pad,Hp=Math.round(Wp*eh/ew),s=Wp/1500,c=svg.cloneNode(true),x=bb.cx-ew/2,y=bb.cy-eh/2;
   c.setAttribute('viewBox',`${x} ${y} ${ew} ${eh}`);c.setAttribute('width',Wp);c.setAttribute('height',Hp);c.removeAttribute('style');
   c.querySelector('#sty').textContent=styExp(s);
-  c.querySelectorAll('#m path,#o path').forEach((p,i)=>{const f=F[i%F.length];p.setAttribute('d',rawD(f));p.style.display=''});
+  /* #m: pelo data-i (o selecionado é movido para o fim do grupo, então a ordem não bate com F); #o: ordem original */
+  c.querySelectorAll('#o path').forEach((p,i)=>{p.setAttribute('d',rawD(F[i]));p.style.display=''});
+  c.querySelectorAll('#m path').forEach(p=>{p.setAttribute('d',rawD(F[+p.dataset.i]));p.style.display=''});
   const l=c.querySelector('#l');fillExportLabels(l,bb.cx,bb.cy,ew/Wp,Wp,Hp,s);l.style.display=showLab?'':'none';
   c.insertAdjacentHTML('afterbegin',`<rect x="${x}" y="${y}" width="${ew}" height="${eh}" fill="#f4f1ea"/>`);
   const st0=c.querySelector('#sty');c.insertBefore(st0,c.firstChild);
   c.insertAdjacentHTML('beforeend',`<text x="${x+ew*.015}" y="${y+eh-eh*.02}" font-size="${14*s*ew/Wp}" fill="#444" font-family="system-ui,sans-serif">Vale do Jequitinhonha — malha municipal IBGE</text>`);
   const xml=new XMLSerializer().serializeToString(c);F.forEach(f=>f.raw=null);
   return{xml,Wp,Hp}}
-function dl(b,n){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click()}
+function dl(b,n){const a=document.createElement('a'),u=URL.createObjectURL(b);a.href=u;a.download=n;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),5000)}
 /* v7: uma coluna por indicador (ano mais recente com dado); séries completas ficam nos CSV do projeto de coleta */
 $('#bCsv').onclick=async()=>{await INDP;const q=v=>'"'+String(v).replace(/"/g,'""')+'"',c=v=>v==null?'':String(v).replace('.',','),
   K=Object.keys((IND&&IND._meta)||{}).map(k=>[k,yrsOf(k).pop()]).filter(x=>x[1]),
@@ -334,10 +371,10 @@ $('#bCsv').onclick=async()=>{await INDP;const q=v=>'"'+String(v).replace(/"/g,'"
   F.forEach(f=>L.push([f.id,q(f.nome),q(f.micro),f.area.toFixed(1).replace('.',','),...K.map(([k,y])=>c(at(IND[k][f.id],y)))].join(';')));
   dl(new Blob(['\ufeff'+L.join('\n')],{type:'text/csv;charset=utf-8'}),'jequitinhonha.csv')};
 $('#bSvg').onclick=()=>dl(new Blob([snap(1500).xml],{type:'image/svg+xml'}),'jequitinhonha.svg');
-$('#bPng').onclick=()=>{const{xml,Wp,Hp}=snap(6000),im=new Image();
-  im.onload=()=>{const c=document.createElement('canvas');c.width=Wp;c.height=Hp;c.getContext('2d').drawImage(im,0,0);c.toBlob(b=>dl(b,'jequitinhonha.png'))};
-  im.onerror=()=>alert('Não foi possível gerar o PNG neste navegador. Use o SVG.');
-  im.src=URL.createObjectURL(new Blob([xml],{type:'image/svg+xml'}))};
+$('#bPng').onclick=()=>{const{xml,Wp,Hp}=snap(6000),im=new Image(),u=URL.createObjectURL(new Blob([xml],{type:'image/svg+xml'}));
+  im.onload=()=>{URL.revokeObjectURL(u);const c=document.createElement('canvas');c.width=Wp;c.height=Hp;c.getContext('2d').drawImage(im,0,0);c.toBlob(b=>dl(b,'jequitinhonha.png'))};
+  im.onerror=()=>{URL.revokeObjectURL(u);alert('Não foi possível gerar o PNG neste navegador. Use o SVG.')};
+  im.src=u};
 
 
 /* ===== Indicadores (IBGE/SIDRA) ===== */
@@ -402,8 +439,10 @@ function openDlg(title,sub,body){
   const S=[...$('#dbody').querySelectorAll('section.sec')];
   $('#dnav').innerHTML=S.map(s=>`<button type="button" data-go="${s.id}">${s.querySelector('h3').textContent}</button>`).join('');
   $('#dnav').hidden=S.length<2;
-  $('#dlg').hidden=false;$('#dbody').scrollTop=0;$('#dx').focus()}
-function closeDlg(){$('#dlg').hidden=true;if(lastFocus&&lastFocus.focus&&document.contains(lastFocus))lastFocus.focus()}
+  $('#dlg').hidden=false;inertBg(true);$('#dbody').scrollTop=0;$('#dx').focus()}
+/* com o diálogo aberto, o resto da página fica inacessível ao teclado e ao leitor de tela */
+const inertBg=on=>document.querySelectorAll('body>header,body>main,body>footer,body>.skip').forEach(e=>{e.inert=on});
+function closeDlg(){$('#dlg').hidden=true;inertBg(false);if(lastFocus&&lastFocus.focus&&document.contains(lastFocus))lastFocus.focus()}
 $('#dnav').onclick=e=>{const b=e.target.closest('button[data-go]');if(!b)return;const s=document.getElementById(b.dataset.go);if(!s)return;
   s.scrollIntoView({behavior:window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'});
   const h=s.querySelector('h3');if(h)h.focus({preventScroll:true})};
@@ -458,12 +497,18 @@ async function openCmp(){
   openDlg('Comparar municípios',CMP.length+' municípios lado a lado',`<div class="cmpw"><table class="t cmp"><thead><tr><th scope="col"><span class="sr">Indicador</span></th>${CMP.map(f=>`<th scope="col">${f.nome}</th>`).join('')}</tr></thead><tbody>${R.map(r=>`<tr><th scope="row">${r[0]}</th>${r[1].map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div><p class="intro">Dados do IBGE. PIB per capita: PIB dividido pela população do mesmo ano (valores da época).</p><div class="acts"><button type="button" id="cmpClear">Limpar comparação</button></div>`+SRC);
   const cb=$('#cmpClear');if(cb)cb.onclick=()=>{CMP=[];updCmp();refreshInfo();closeDlg()}}
 $('#bCmp').onclick=openCmp;
-$('#bHelp').onclick=()=>openDlg('Ajuda','Como usar o mapa',`<div class="sec"><ul class="help"><li><b>Mapa:</b> arraste para mover; roda do mouse, pinça ou botões + − para aproximar; ⌂ mostra tudo.</li><li><b>Clique ou toque</b> num município para ver o resumo. “Ver todos os dados” abre população, economia, educação, saneamento e evolução ao longo dos anos.</li><li><b>Cor:</b> escolha a microrregião ou um indicador (população, densidade, PIB, PIB per capita, alfabetização, esgoto). Nos indicadores com mais de um ano, use o controle “Ano” na legenda. As cores seguem a posição no ranking, e a legenda mostra as faixas.</li><li><b>Personalizar cores:</b> paletas prontas (inclusive para daltônicos e para imprimir), escalas e cor de um município.</li><li><b>Nomes:</b> liga e desliga os nomes no mapa; aproxime para ver mais.</li><li><b>Comparar:</b> selecione um município e use “Comparar com outros” (até 4).</li><li><b>Lista:</b> busque, ordene por indicador e filtre por microrregião. “Recolher painel” libera a tela.</li><li><b>Compartilhar:</b> “Copiar link” guarda o município, o indicador, o ano e a paleta escolhida.</li><li><b>Baixar:</b> CSV, SVG e PNG de alta resolução (sempre com a malha completa).</li></ul></div>`);
+$('#bHelp').onclick=()=>openDlg('Ajuda','Como usar o mapa',`<div class="sec"><ul class="help"><li><b>Mapa:</b> arraste para mover; roda do mouse, pinça ou botões + − para aproximar; ⌂ mostra tudo.</li><li><b>Clique ou toque</b> num município para ver o resumo. “Ver todos os dados” abre população, economia, educação, saneamento e evolução ao longo dos anos.</li><li><b>Cor:</b> escolha a microrregião ou um dos 56 indicadores, separados por tema (população, economia, agropecuária, saneamento, educação, saúde, desenvolvimento humano). Nos indicadores com mais de um ano, use o controle “Ano” na legenda ou “▶ Animar” para ver os anos em sequência. As cores seguem a posição no ranking, e a legenda mostra as faixas. Passe o mouse num município para ver o valor.</li><li><b>Legenda:</b> toque em “Legenda” para recolher ou abrir.</li><li><b>Personalizar cores:</b> paletas prontas (inclusive para daltônicos e para imprimir), escalas e cor de um município.</li><li><b>Nomes:</b> liga e desliga os nomes no mapa; aproxime para ver mais.</li><li><b>Comparar:</b> selecione um município e use “Comparar com outros” (até 4).</li><li><b>Lista:</b> busque (acentos não importam; Enter abre o primeiro), ordene por indicador (“Indicador do mapa” usa o que está colorindo o mapa) e filtre por microrregião. “Recolher painel” libera a tela.</li><li><b>Teclado:</b> Tab percorre os municípios do mapa; setas movem o mapa; + e − aproximam; Esc fecha janelas.</li><li><b>Compartilhar:</b> “Copiar link” guarda o município, o indicador, o ano e a paleta escolhida.</li><li><b>Baixar:</b> CSV, SVG e PNG de alta resolução (sempre com a malha completa).</li></ul></div>`);
 $('#dx').onclick=closeDlg;$('#dlg').onclick=e=>{if(e.target.id==='dlg')closeDlg()};
 document.addEventListener('keydown',e=>{
   if(!$('#dlg').hidden){if(e.key==='Escape')return closeDlg();
     if(e.key==='Tab'){const x=[...$('#dlg').querySelectorAll('a[href],button,summary')].filter(n=>n.offsetParent!==null),a=x[0],z=x[x.length-1];if(e.shiftKey&&document.activeElement===a){e.preventDefault();z.focus()}else if(!e.shiftKey&&document.activeElement===z){e.preventDefault();a.focus()}}return}
+  if(e.key==='Escape'&&dlm.open){dlm.open=false;dlm.querySelector('summary').focus();return}
   if(e.key==='Escape'&&!$('#cp').hidden){closeCp();return}
+  /* teclado no mapa: setas movem, + e − aproximam */
+  if(F.length&&e.target.closest&&e.target.closest('#map')){const k={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key];
+    if(k){e.preventDefault();st.cx+=k[0]*80*st.upp;st.cy+=k[1]*80*st.upp;view();return}
+    if(e.key==='+'||e.key==='='){e.preventDefault();zoomAt(1.6,W/2,H/2);return}
+    if(e.key==='-'){e.preventDefault();zoomAt(1/1.6,W/2,H/2);return}}
   if(e.key!=='Enter'&&e.key!==' ')return;const t=e.target,c=t.classList;if(!c)return;
   if(c.contains('it')||c.contains('lg')){e.preventDefault();t.click()}
   else if(c.contains('m')){e.preventDefault();const f=F[t.dataset.i];pick(f,true);f.el.focus()}});
@@ -474,7 +519,8 @@ const rankOf=f=>[...F].sort((a,b)=>b.area-a.area).indexOf(f)+1;
 function infoHtml(f){
   const dot=hx(C.mun[f.id],microColor(micros.indexOf(f.micro)));
   return `<div class="ih"><i class="dot" style="background:${dot}" aria-hidden="true"></i><div><div class="nm">${f.nome}</div><div class="sb">Microrregião de ${f.micro}</div></div></div>`+
-  `<dl class="kv"><div><dt>Código IBGE</dt><dd>${f.id}</dd></div><div><dt>Área aproximada</dt><dd>${fmt(f.area)} km²<small>${rankOf(f)}º maior de ${F.length}</small></dd></div></dl>`+
+  `<dl class="kv"><div><dt>Código IBGE</dt><dd>${f.id}</dd></div><div><dt>Área aproximada</dt><dd>${fmt(f.area)} km²<small>${rankOf(f)}º maior de ${F.length}</small></dd></div>`+
+  (mode!=='m'?`<div><dt>${esc(MODES[mode].t)}${YR&&MODES[mode].yrs?' ('+YR+')':''}</dt><dd>${esc(valTxt(f))}</dd></div>`:'')+`</dl>`+
   `<div class="acts"><button id="bMais" class="pri">Ver todos os dados</button><button id="bLink">Copiar link</button><button id="bAddCmp" aria-pressed="${CMP.includes(f)}">${CMP.includes(f)?'Tirar da comparação':'Comparar com outros'}</button></div>`}
 function refreshInfo(){if(sel)$('#info').innerHTML=infoHtml(sel);updMini()}
 function updMini(){const m=$('#mini');
@@ -506,7 +552,7 @@ function renderCp(){
   const nm=Object.keys(C.mun).length,cur=sel?hx(C.mun[sel.id],hx(fillOf(sel),'#d9d4c5')):'';
   b.innerHTML=
   `<section aria-labelledby="c1"><h3 id="c1">Cores das microrregiões</h3><div class="pals">${pals}</div><details${C.pal==='custom'?' open':''}><summary>Escolher a cor de cada microrregião</summary><div class="crs">${mic}</div></details></section>`+
-  `<section aria-labelledby="c2"><h3 id="c2">Escala de população e densidade</h3><p class="hint">Use o seletor “Cor:” no topo para colorir o mapa por população ou densidade.</p><div class="pals" style="margin-top:8px">${rps}</div>`+
+  `<section aria-labelledby="c2"><h3 id="c2">Escala dos indicadores</h3><p class="hint">Use o seletor “Cor:” no topo para colorir o mapa por um indicador.</p><div class="pals" style="margin-top:8px">${rps}</div>`+
   (C.ramp==='custom'?`<div class="crs"><label class="cr"><input type="color" id="r0" value="${hx(C.r0,'#fde8c8')}"><span>Valores baixos</span></label><label class="cr"><input type="color" id="r1" value="${hx(C.r1,'#8a3b12')}"><span>Valores altos</span></label></div>`:'')+
   `<label class="ck"><input type="checkbox" id="rinv"${C.inv?' checked':''}><span>Inverter a escala (troca claro e escuro)</span></label></section>`+
   `<section aria-labelledby="c3"><h3 id="c3">Cor de um município</h3>`+
