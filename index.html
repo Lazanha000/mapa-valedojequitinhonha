@@ -1,11 +1,11 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://servicodados.ibge.gov.br; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://servicodados.ibge.gov.br; font-src 'self'; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Mapa do Vale do Jequitinhonha</title>
 <meta name="description" content="Mapa interativo dos 51 municípios da Mesorregião Jequitinhonha (MG) com 56 indicadores socioeconômicos oficiais (IBGE, Atlas do Desenvolvimento Humano, INEP, DATASUS), cada um com fonte, ano e avisos.">
-<meta name="theme-color" content="#8a3b12">
+<meta name="theme-color" content="#13231d">
 <link rel="canonical" href="https://lazanha000.github.io/mapa-valedojequitinhonha/">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -24,7 +24,7 @@
 <a class="skip" href="#q" data-skip="q">Pular para a lista de municípios</a><a class="skip" href="#map" data-skip="map">Pular para o mapa</a>
 <noscript><p style="padding:16px;margin:0;background:#fff4d6;color:#3a2a00">Este mapa precisa de JavaScript ligado no navegador para funcionar.</p></noscript>
 <header>
-<h1><svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#8a3b12"/><path d="M8 44 22 24l8 10 10-16 16 26z" fill="#e9b872"/><path d="M6 53c12-8 26 5 52-4" fill="none" stroke="#8fb3d9" stroke-width="5" stroke-linecap="round"/></svg><span>Vale do Jequitinhonha<small id="sub">carregando…</small></span></h1>
+<h1><svg class="logo" viewBox="4 6 56 54" aria-hidden="true"><g stroke-linejoin="round"><path d="M32 9Q49 26 57 52Q32 58 7 52Q15 26 32 9z" fill="#2f8f6f" stroke="#2f8f6f" stroke-width="5"/><path d="M32 20Q42.5 30.6 48.1 47.3Q32 50.4 15.9 47.3Q21.5 30.6 32 20z" fill="#9fd8bd" stroke="#9fd8bd" stroke-width="2"/><path d="M32 29Q37.1 34.4 39.8 42.5Q32 44 24.2 42.5Q26.9 34.4 32 29z" fill="#e2668f" stroke="#e2668f" stroke-width="2"/></g></svg><span>Vale do Jequitinhonha<small id="sub">carregando…</small></span></h1>
 <select id="bMod" aria-label="Colorir o mapa por"><option value="m">Cor: microrregião</option><option value="p" disabled>Cor: população</option><option value="d" disabled>Cor: densidade</option><option value="b" disabled>Cor: PIB</option><option value="c" disabled>Cor: PIB per capita</option><option value="a" disabled>Cor: alfabetização</option><option value="s" disabled>Cor: esgoto adequado</option></select>
 <div id="hb"><button id="bCor" class="on" aria-pressed="true">Cores</button><button id="bNom" aria-pressed="false">Nomes</button>
 <button id="bPal" aria-expanded="false" aria-controls="cp">Personalizar cores</button><button id="bVale">Dados do Vale</button><button id="bCmp" hidden>Comparar (0)</button><details id="dlm"><summary>Baixar ▾</summary><div class="dlp"><button id="bCsv">Tabela CSV (abre no Excel)</button><button id="bSvg">Mapa em SVG (vetor)</button><button id="bPng">Mapa em PNG (alta resolução)</button></div></details><button id="bHelp" aria-label="Ajuda">? Ajuda</button></div>
@@ -37,7 +37,7 @@
 <div id="info" aria-live="polite"><p class="empty">Clique em um município no mapa ou na lista para ver os dados dele.</p></div>
 </aside>
 <div id="stage">
-<svg id="map" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Mapa dos municípios do Vale do Jequitinhonha. Use Tab para percorrer os municípios, Enter para selecionar, setas para mover o mapa e + ou − para aproximar."><style id="sty"></style><g id="o"></g><g id="m"></g><g id="l" fill="#222" stroke="#fff" paint-order="stroke" text-anchor="middle" font-weight="600" style="display:none;pointer-events:none"></g></svg>
+<svg id="map" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Mapa dos municípios do Vale do Jequitinhonha. Use Tab para percorrer os municípios, Enter para selecionar, setas para mover o mapa e + ou − para aproximar."><style id="sty"></style><g id="o"></g><g id="m"></g><g id="l" fill="#13231d" stroke="#fff" font-family="Barlow Condensed, Barlow, system-ui, sans-serif" paint-order="stroke" text-anchor="middle" font-weight="600" style="display:none;pointer-events:none"></g></svg>
 <div id="ctl"><button id="zi" aria-label="Aproximar">+</button><button id="zo" aria-label="Afastar">−</button><button id="zr" title="Ver tudo" aria-label="Ver o mapa inteiro">⌂</button></div>
 <button id="openSide" hidden aria-controls="side" aria-expanded="false" aria-label="Abrir a lista de municípios">☰ Lista</button>
 <div id="mini" hidden></div>

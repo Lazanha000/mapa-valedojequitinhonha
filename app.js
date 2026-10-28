@@ -2,7 +2,9 @@ const API='https://servicodados.ibge.gov.br/api/';
 const hasOwn=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
 /* ===== v5: paletas, escalas e cores personalizadas ===== */
 const PALS={
-  terra:{n:'Terra (padrão)',c:['#e9b872','#9cc5a1','#d98f8f','#8fb3d9','#c7a6d8','#e5d36b','#b5c7a1','#e0a58a']},
+  /* v10: padrão da identidade "Turmalina": turmalina verde, rubelita, água-marinha, ocre do tauá, ametista (e mais 3 tons de barro e folha) */
+  vale:{n:'Vale (padrão)',c:['#86c5a6','#e8a0b4','#8ec1cf','#dcc07a','#b7a7d9','#cdb89c','#a6c98a','#e0a98c']},
+  terra:{n:'Terra',c:['#e9b872','#9cc5a1','#d98f8f','#8fb3d9','#c7a6d8','#e5d36b','#b5c7a1','#e0a58a']},
   vivas:{n:'Vivas',c:['#f6b73c','#3fae6a','#e4572e','#2e86de','#9b59b6','#17bebb','#ff6f91','#8bc34a']},
   pastel:{n:'Pastel',c:['#fbd5a5','#bfe3c6','#f4b8c1','#b8d4f1','#dcc6ee','#fff0a8','#c9e4de','#f2c9a6']},
   dalt:{n:'Para daltônicos',c:['#E69F00','#56B4E9','#009E73','#F0E442','#0072B2','#D55E00','#CC79A7','#999999']},
@@ -14,7 +16,8 @@ const PALS={
   custom:{n:'Personalizada',c:[]}
 };
 const RAMPS={
-  laranja:{n:'Laranja (padrão)',s:['#fde8c8','#8a3b12']},
+  turmalina:{n:'Tauá à turmalina (padrão)',s:['#f3e9c6','#a9d6b4','#3f9c7c','#0f3d30']},
+  laranja:{n:'Laranja',s:['#fde8c8','#8a3b12']},
   azul:{n:'Azul',s:['#e3f0fb','#08306b']},
   verde:{n:'Verde',s:['#e5f5e0','#00441b']},
   roxo:{n:'Roxo',s:['#efedf5','#3f007d']},
@@ -24,18 +27,18 @@ const RAMPS={
   arco:{n:'Azul ao vermelho',s:['#2b83ba','#abdda4','#ffffbf','#fdae61','#d7191c']},
   custom:{n:'Personalizada',s:[]}
 };
-const C0=()=>({pal:'terra',cm:{},ramp:'laranja',inv:false,r0:'#fde8c8',r1:'#8a3b12',mun:{},names:'a'});
+const C0=()=>({pal:'vale',cm:{},ramp:'turmalina',inv:false,r0:'#f3e9c6',r1:'#0f3d30',mun:{},names:'a'});
 let C=C0();
 const HX=/^#[0-9a-f]{6}$/i,hx=(c,d)=>HX.test(c)?c:d;
 (function(){try{const s=JSON.parse(localStorage.getItem('jq_cores5')||'null');
   if(s&&typeof s==='object'){C=C0();['pal','cm','ramp','inv','r0','r1','mun','names'].forEach(k=>{if(k in s)C[k]=s[k]});
-    if(!hasOwn(PALS,C.pal))C.pal='terra';if(!hasOwn(RAMPS,C.ramp))C.ramp='laranja';
+    if(!hasOwn(PALS,C.pal))C.pal='vale';if(!hasOwn(RAMPS,C.ramp))C.ramp='turmalina';
     if(!C.cm||typeof C.cm!=='object')C.cm={};if(!C.mun||typeof C.mun!=='object')C.mun={};
     C.inv=!!C.inv;if(C.names!=='t')C.names='a'}}catch(e){}})();
 const saveC=()=>{try{localStorage.setItem('jq_cores5',JSON.stringify(C))}catch(e){}};
 const h2r=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)),r2h=a=>'#'+a.map(v=>Math.round(v).toString(16).padStart(2,'0')).join('');
-function microColor(i){if(C.pal==='custom')return hx(C.cm[micros[i]],PALS.terra.c[i%8]);const L=PALS[C.pal].c;return L[i%L.length]}
-const rampStops=()=>C.ramp==='custom'?[hx(C.r0,'#fde8c8'),hx(C.r1,'#8a3b12')]:RAMPS[C.ramp].s;
+function microColor(i){if(C.pal==='custom')return hx(C.cm[micros[i]],PALS.vale.c[i%8]);const L=PALS[C.pal].c;return L[i%L.length]}
+const rampStops=()=>C.ramp==='custom'?[hx(C.r0,'#f3e9c6'),hx(C.r1,'#0f3d30')]:RAMPS[C.ramp].s;
 function rampAt(t){const st=rampStops();if(C.inv)t=1-t;const n=st.length-1,x=Math.min(n,Math.max(0,t*n)),i=Math.min(n-1,Math.floor(x)),u=x-i,a=h2r(st[i]),b=h2r(st[i+1]);return r2h(a.map((v,k)=>v+(b[k]-v)*u))}
 const rampCss=()=>'linear-gradient(90deg,'+[0,.2,.4,.6,.8,1].map(rampAt).join(',')+')';
 
@@ -105,7 +108,7 @@ function build(d){
   [...document.querySelectorAll('#m path')].forEach((p,i)=>F[i].el=p);[...document.querySelectorAll('#o path')].forEach((p,i)=>F[i].oel=p);[...document.querySelectorAll('#l text')].forEach((t,i)=>F[i].tx=t);
   F.forEach(f=>f.key=nrm(f.nome));
   const tot=F.reduce((s,f)=>s+f.area,0);
-  $('#sub').innerHTML=esc(`${F.length} municípios · ${micros.length} microrregiões · ≈ ${fmt(tot)} km²`+(F.length!==51?' (esperado: 51)':''))+'<span class="sfn"> · malha oficial do IBGE</span>';
+  $('#sub').innerHTML=esc(`${F.length} municípios em ${micros.length} microrregiões, ≈ ${fmt(tot)} km²`+(F.length!==51?' (esperado: 51)':''))+'<span class="sfn">, malha oficial do IBGE</span>';
   $('#sub').title=d.fonte?'Fonte da malha: '+d.fonte.replace(API,'').split('?')[0]:'';
   $('#legB').innerHTML=legMicro();
   sty();paint();renderList();fitAll();$('#msg').style.display='none';requestAnimationFrame(()=>{size();fitAll();dbg()});INDP=loadInd().then(()=>{statsC.clear();
@@ -121,9 +124,9 @@ function build(d){
   $('#fm').innerHTML='<option value="">Todas as microrregiões</option>'+micros.map(m=>`<option value="${m}">${m}</option>`).join('');
 }
 /* Traços: largura em pixels de tela = largura × unidades-por-pixel (sem vector-effect, que é lento em contornos grandes). */
-function sty(){const u=st.upp;$('#sty').textContent=`path{stroke-linejoin:round}#o path{fill:#222;stroke:#222;stroke-width:${3.2*u}px}.m{stroke:#3a3631;stroke-width:${.7*u}px;cursor:pointer}@media(hover:hover){.m:hover{stroke:#111;stroke-width:${1.8*u}px}}.m.sel{stroke:#b00020;stroke-width:${2.4*u}px}.m:focus-visible{stroke:#0057d8;stroke-width:${3.5*u}px}`}
+function sty(){const u=st.upp;$('#sty').textContent=`path{stroke-linejoin:round}#o path{fill:var(--ol);stroke:var(--ol);stroke-width:${3.2*u}px}.m{stroke:var(--ms);stroke-width:${.7*u}px;cursor:pointer}@media(hover:hover){.m:hover{stroke:var(--fg);stroke-width:${1.8*u}px}}.m.sel{stroke:var(--rb);stroke-width:${2.6*u}px}.m:focus-visible{stroke:var(--focus);stroke-width:${3.5*u}px}`}
 /* Estilo da exportação (SVG/PNG): traço de largura fixa na imagem. */
-const styExp=s=>`path{vector-effect:non-scaling-stroke;stroke-linejoin:round}#o path{fill:#222;stroke:#222;stroke-width:${3.2*s}px}.m{stroke:#3a3631;stroke-width:${.7*s}px}.m.sel{stroke:#b00020;stroke-width:${2.4*s}px}`;
+const styExp=s=>`path{vector-effect:non-scaling-stroke;stroke-linejoin:round}#o path{fill:#13231d;stroke:#13231d;stroke-width:${3.2*s}px}.m{stroke:#2b3d35;stroke-width:${.7*s}px}.m.sel{stroke:#b8325e;stroke-width:${2.4*s}px}`;
 /* ===== v6: geometria por nível de zoom (LOD) =====
    Cada contorno é simplificado (Douglas-Peucker) com tolerância de no máximo 0,4 pixel de tela no zoom atual,
    então a imagem na tela é indistinguível da malha completa; só desenha o que está na tela; e guarda o resultado.
@@ -208,7 +211,7 @@ function applyLabels(){
   const fs=window.matchMedia&&matchMedia('(pointer:coarse)').matches?13:12,all=C.names==='t',vis=new Set(layoutLabels(st.cx,st.cy,st.upp,W,H,fs,all,all?[]:obstacles()));
   g.setAttribute('font-size',fs*st.upp);g.setAttribute('stroke-width',fs*.3*st.upp);g.setAttribute('stroke-linejoin','round');
   F.forEach(f=>{const t=f.tx,on=vis.has(f);t.style.display=on?'':'none';
-    if(on){t.setAttribute('font-weight',f===sel?'800':'600');t.setAttribute('fill',f===sel?'#7a0014':'#222')}});
+    if(on){t.setAttribute('font-weight',f===sel?'800':'600');t.setAttribute('fill',f===sel?'#8f1f47':'#13231d')}});
   const inView=F.filter(f=>{const x=(f.pin[0]-st.cx)/st.upp+W/2,y=(f.pin[1]-st.cy)/st.upp+H/2;return x>=0&&x<=W&&y>=0&&y<=H}).length;
   h.hidden=all||vis.size>=inView;
   const tx=`Mostrando ${vis.size} de ${inView} nomes na tela. Aproxime o mapa para ver os demais, ou escolha “Todos os nomes” em Personalizar cores.`;
@@ -216,7 +219,7 @@ function applyLabels(){
 function fillExportLabels(l,cx,cy,upp,Wp,Hp,s){
   const fs=12*s,vis=layoutLabels(cx,cy,upp,Wp,Hp,fs,C.names==='t');
   l.setAttribute('font-size',fs*upp);l.setAttribute('stroke-width',fs*.3*upp);l.setAttribute('stroke-linejoin','round');
-  l.innerHTML=vis.map(f=>`<text x="${f.pin[0].toFixed(1)}" y="${f.pin[1].toFixed(1)}" dy=".35em"${f===sel?' font-weight="800" fill="#7a0014"':''}>${esc(f.nome)}</text>`).join('')}
+  l.innerHTML=vis.map(f=>`<text x="${f.pin[0].toFixed(1)}" y="${f.pin[1].toFixed(1)}" dy=".35em"${f===sel?' font-weight="800" fill="#8f1f47"':''}>${esc(f.nome)}</text>`).join('')}
 
 /* Redesenho no máximo uma vez por quadro; nomes são reposicionados só quando o gesto para (evita travar ao arrastar/zoom). */
 let raf=0,labT=0,lastU=0;
@@ -246,7 +249,7 @@ const MODES={
 function addModes(){const M=IND&&IND._meta;if(!M||addModes.ok)return;addModes.ok=true;const G={};
   Object.entries(M).forEach(([k,m])=>{if(!IND[k])return;const id='i_'+k;
     MODES[id]={t:m.t,u:m.u,d:m.d,yrs:k,z:true,v:f=>{const r=IND[k][f.id];return r&&r[YR]!=null?r[YR]:null},
-      note:'Fonte: '+m.f+(/^(corrente|constante)/.test(m.cc)?' · '+m.cc:'')+'. Avisos na ficha do município.'};
+      note:'Fonte: '+m.f+(/^(corrente|constante)/.test(m.cc)?', '+m.cc:'')+'. Avisos na ficha do município.'};
     (G[m.g]=G[m.g]||[]).push(`<option value="${id}">${esc(m.t)}</option>`)});
   $('#bMod').insertAdjacentHTML('beforeend',Object.entries(G).map(([g,o])=>`<optgroup label="${esc(g)}">${o.join('')}</optgroup>`).join(''));
   Object.entries(DUP).forEach(([k,v])=>{const o=$('#bMod option[value='+k+']');if(o&&MODES['i_'+v])o.remove()})}
@@ -255,7 +258,7 @@ const DUP={p:'pop_censo',d:'densidade',b:'pib',c:'pib_per_capita',s:'san_esgoto_
 const noVal=(M,v)=>v==null||(!M.z&&v<=0);
 const valTxt=f=>{const M=MODES[mode],v=valOf(f);return noVal(M,v)?'sem dado':fv(M,v)};
 const valOf=f=>mode==='m'?0:MODES[mode].v(f);
-const fillOf=f=>hx(C.mun[f.id],null)||(mode==='m'?microColor(micros.indexOf(f.micro)):(RAMP&&RAMP.get(f))||'#d9d4c5');
+const fillOf=f=>hx(C.mun[f.id],null)||(mode==='m'?microColor(micros.indexOf(f.micro)):(RAMP&&RAMP.get(f))||'#d3dbd5');
 const legMicro=()=>'<div class="lt">Microrregiões</div><div class="lh">Clique para destacar uma</div>'+micros.map((m,i)=>`<div class="lg" role="button" tabindex="0" aria-pressed="false" data-m="${m}"><i style="background:${microColor(i)}"></i>${m}</div>`).join('');
 const fv=(M,x)=>(M.pre||'')+f1(x,M.d)+(M.u||'');
 /* QF: faixa da legenda escolhida (só os municípios dela ficam fortes); QM: município → faixa; RK: município → posição (1 = maior) */
@@ -268,7 +271,8 @@ function recolor(){const M=MODES[mode],a=F.map(f=>[f,valOf(f)]).filter(x=>!noVal
   $('#lgb').innerHTML=`<div class="lt">${esc(M.t)}${M.yrs&&YR?' '+YR:''}</div><div style="height:12px;width:180px;margin:4px 0;border:1px solid #8886;border-radius:3px;background:${rampCss()}"></div>`+
     (n?`<div style="display:flex;justify-content:space-between;width:180px"><span>${esc(fv({...M,u:'',pre:''},a[0][1]))}</span><span>${esc(fv(M,a[n-1][1]))}</span></div>`:'')+
     (cl?`<div class="cls${QF!=null?' f':''}" role="group" aria-label="Faixas, cada uma com cerca de 1/5 dos municípios. Clique numa faixa para destacar só esses municípios.">${cl}</div>`:'')+
-    `<div class="lh" style="max-width:180px;margin-top:3px">Cor por posição no ranking (não proporcional). Cada faixa tem cerca de 1/5 dos municípios; clique numa para destacar. Cinza: sem dado.${M.note?' '+esc(M.note):''}</div>`;
+    `<div class="lh" style="max-width:190px;margin-top:4px">Cor pela posição no ranking; cada faixa tem cerca de 1/5 dos municípios. Clique numa faixa para destacar. Cinza: sem dado.</div>`+
+    (M.note?`<details class="lnote"><summary>Sobre este indicador</summary><p>${esc(M.note)}</p></details>`:'');
   paint()}
 const say=t=>{const l=$('#live');l.textContent='';setTimeout(()=>{l.textContent=t},60)};
 function setMode(v){mode=MODES[v]?v:'m';const L=$('#legB');stopPlay();QF=null;
@@ -289,13 +293,13 @@ function togglePlay(b){if(PLAY)return stopPlay();const r=$('#yr');if(+r.value>=+
 $('#leg').addEventListener('input',e=>{if(e.target.id!=='yr'||mode==='m')return;setYear(+e.target.value)});
 function refreshColors(){if(!F.length)return;setMode(mode);renderList()}
 $('#bMod').onchange=e=>setMode(e.target.value);
-function paint(){F.forEach(f=>{f.el.setAttribute('fill',colored?fillOf(f):'#d9d4c5');
+function paint(){F.forEach(f=>{f.el.setAttribute('fill',colored?fillOf(f):'#d3dbd5');
   f.el.style.opacity=((focus&&f.micro!==focus)||(QF!=null&&mode!=='m'&&QM.get(f)!==QF))?.25:1;f.el.classList.toggle('sel',f===sel)});
   if(sel)sel.el.parentNode.appendChild(sel.el);
   document.querySelectorAll('.lg').forEach(e=>{e.classList.toggle('off',!!focus&&e.dataset.m!==focus);e.setAttribute('aria-pressed',String(focus===e.dataset.m))});applyLabels()}
 const MODEKEYS=['m','p','d','b','c','a','s'],ID=/^\d{6,8}$/;
 function syncHash(){try{const q=new URLSearchParams();if(sel)q.set('c',sel.id);if(mode!=='m'){q.set('m',mode);if(MODES[mode].yrs&&YR)q.set('y',YR)}
-  if(C.pal!=='terra'&&C.pal!=='custom')q.set('pal',C.pal);if(C.ramp!=='laranja'&&C.ramp!=='custom')q.set('rp',C.ramp);if(C.inv)q.set('iv','1');
+  if(C.pal!=='vale'&&C.pal!=='custom')q.set('pal',C.pal);if(C.ramp!=='turmalina'&&C.ramp!=='custom')q.set('rp',C.ramp);if(C.inv)q.set('iv','1');
   const h=q.toString();history.replaceState(null,'',h?'#'+h:location.pathname+location.search)}catch(e){}}
 function readHash(){const h=location.hash.slice(1),o={c:null,m:null,y:null,pal:null,rp:null,iv:false};if(ID.test(h)){o.c=h;return o}
   try{const q=new URLSearchParams(h),c=q.get('c'),m=q.get('m'),y=q.get('y'),pal=q.get('pal'),rp=q.get('rp');
@@ -366,9 +370,9 @@ function snap(Wp){const pad=1.06,ew=bb.w*pad,eh=bb.h*pad,Hp=Math.round(Wp*eh/ew)
   c.querySelectorAll('#o path').forEach((p,i)=>{p.setAttribute('d',rawD(F[i]));p.style.display=''});
   c.querySelectorAll('#m path').forEach(p=>{p.setAttribute('d',rawD(F[+p.dataset.i]));p.style.display=''});
   const l=c.querySelector('#l');fillExportLabels(l,bb.cx,bb.cy,ew/Wp,Wp,Hp,s);l.style.display=showLab?'':'none';
-  c.insertAdjacentHTML('afterbegin',`<rect x="${x}" y="${y}" width="${ew}" height="${eh}" fill="#f4f1ea"/>`);
+  c.insertAdjacentHTML('afterbegin',`<rect x="${x}" y="${y}" width="${ew}" height="${eh}" fill="#e6ece7"/>`);
   const st0=c.querySelector('#sty');c.insertBefore(st0,c.firstChild);
-  c.insertAdjacentHTML('beforeend',`<text x="${x+ew*.015}" y="${y+eh-eh*.02}" font-size="${14*s*ew/Wp}" fill="#444" font-family="system-ui,sans-serif">Vale do Jequitinhonha — malha municipal IBGE</text>`);
+  c.insertAdjacentHTML('beforeend',`<text x="${x+ew*.015}" y="${y+eh-eh*.02}" font-size="${14*s*ew/Wp}" fill="#52615a" font-family="Barlow, system-ui, sans-serif">Mapa do Vale do Jequitinhonha. Malha municipal: IBGE</text>`);
   const xml=new XMLSerializer().serializeToString(c);F.forEach(f=>f.raw=null);
   return{xml,Wp,Hp}}
 function dl(b,n){const a=document.createElement('a'),u=URL.createObjectURL(b);a.href=u;a.download=n;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),5000)}
@@ -426,7 +430,7 @@ function socialHtml(L){
 /* v7: todos os indicadores do indicadores.json, valor mais recente, com fonte e avisos */
 function allHtml(f){const M=IND&&IND._meta;if(!M)return '';const G={};
   Object.entries(M).forEach(([k,m])=>{const l=last(IND[k]&&IND[k][f.id]);
-    (G[m.g]=G[m.g]||[]).push([esc(m.t),l?f1(l.v,m.d)+esc(m.u):'sem dado',(l?l.p+' · ':'')+esc(m.f)])});
+    (G[m.g]=G[m.g]||[]).push([esc(m.t),l?f1(l.v,m.d)+esc(m.u):'sem dado',(l?l.p+', ':'')+esc(m.f)])});
   const av=Object.values(M).filter(m=>m.av.length).map(m=>`<li><b>${esc(m.t)}</b>: ${m.av.map(esc).join(' ')}</li>`).join('');
   return sec('tud','Todos os indicadores',Object.entries(G).map(([g,R])=>`<p class="intro"><b>${esc(g)}</b></p>`+tb(R)).join(''),
     'Valor mais recente de cada indicador. Para ver a série, escolha o indicador em “Colorir o mapa por” e mude o ano na legenda.')+
@@ -455,7 +459,7 @@ $('#dnav').onclick=e=>{const b=e.target.closest('button[data-go]');if(!b)return;
   s.scrollIntoView({behavior:window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'});
   const h=s.querySelector('h3');if(h)h.focus({preventScroll:true})};
 async function openMun(f){
-  const sub=`Microrregião de ${f.micro} — código IBGE ${f.id}`;
+  const sub=`Microrregião de ${f.micro}, código IBGE ${f.id}`;
   openDlg(f.nome,sub,'<p class="load">Carregando dados…</p>');await INDP;
   const P=IND&&IND.pop&&IND.pop[f.id];if(!P)return openDlg(f.nome,sub,NODATA);
   const p22=at(P,'2022'),p10=at(P,'2010'),a=last(IND.area&&IND.area[f.id]),d=at(IND.den&&IND.den[f.id],'2022'),e=last(IND.est&&IND.est[f.id]);
@@ -564,7 +568,7 @@ function renderCp(){
   const pals=Object.entries(PALS).map(([k,p])=>`<button type="button" class="pal" data-pal="${k}" aria-pressed="${C.pal===k}">${swatch(k==='custom'?micros.map((m,i)=>microColor(i)):p.c.slice(0,6))}<span>${p.n}</span></button>`).join('');
   const mic=micros.map((m,i)=>`<label class="cr"><input type="color" data-micro="${i}" value="${microColor(i)}"><span>${m}</span></label>`).join('');
   const rps=Object.entries(RAMPS).map(([k,r])=>`<button type="button" class="pal" data-ramp="${k}" aria-pressed="${C.ramp===k}"><span class="gr" aria-hidden="true" style="background:linear-gradient(90deg,${k==='custom'?hx(C.r0,'#fde8c8')+','+hx(C.r1,'#8a3b12'):r.s.join(',')})"></span><span>${r.n}</span></button>`).join('');
-  const nm=Object.keys(C.mun).length,cur=sel?hx(C.mun[sel.id],hx(fillOf(sel),'#d9d4c5')):'';
+  const nm=Object.keys(C.mun).length,cur=sel?hx(C.mun[sel.id],hx(fillOf(sel),'#d3dbd5')):'';
   b.innerHTML=
   `<section aria-labelledby="c1"><h3 id="c1">Cores das microrregiões</h3><div class="pals">${pals}</div><details${C.pal==='custom'?' open':''}><summary>Escolher a cor de cada microrregião</summary><div class="crs">${mic}</div></details></section>`+
   `<section aria-labelledby="c2"><h3 id="c2">Escala dos indicadores</h3><p class="hint">Use o seletor “Cor:” no topo para colorir o mapa por um indicador.</p><div class="pals" style="margin-top:8px">${rps}</div>`+
@@ -593,7 +597,7 @@ cpEl.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)retur
   if(t.dataset.ramp){C.ramp=t.dataset.ramp;saveC();refreshColors();again(`[data-ramp="${C.ramp}"]`);return}
   if(t.id==='mcx'&&sel){delete C.mun[sel.id];saveC();paint();refreshInfo();again('#mc');return}
   if(t.id==='mcall'){C.mun={};saveC();paint();refreshInfo();again('[data-pal="'+C.pal+'"]');return}
-  if(t.id==='cpr'){C=C0();saveC();refreshColors();refreshInfo();applyLabels();again('[data-pal="terra"]')}});
+  if(t.id==='cpr'){C=C0();saveC();refreshColors();refreshInfo();applyLabels();again('[data-pal="vale"]')}});
 cpEl.addEventListener('input',e=>{const t=e.target;
   if(t.dataset&&t.dataset.micro!=null){if(C.pal!=='custom')snapPal();C.cm[micros[+t.dataset.micro]]=t.value;saveC();refreshColors();refreshInfo();syncPal()}
   else if(t.id==='r0'||t.id==='r1'){C[t.id]=t.value;saveC();refreshColors()}
