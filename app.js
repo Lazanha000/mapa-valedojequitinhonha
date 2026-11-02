@@ -2,7 +2,7 @@ const API='https://servicodados.ibge.gov.br/api/';
 const hasOwn=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
 /* ===== v5: paletas, escalas e cores personalizadas ===== */
 const PALS={
-  /* v10: padrão da identidade "Turmalina": turmalina verde, rubelita, água-marinha, ocre do tauá, ametista (e mais 3 tons de barro e folha) */
+  /* paleta padrão = as pedras do Vale: turmalina verde, rubelita, água-marinha, ocre do tauá, ametista (e mais 3 tons de barro e folha) */
   vale:{n:'Vale (padrão)',c:['#86c5a6','#e8a0b4','#8ec1cf','#dcc07a','#b7a7d9','#cdb89c','#a6c98a','#e0a98c']},
   terra:{n:'Terra',c:['#e9b872','#9cc5a1','#d98f8f','#8fb3d9','#c7a6d8','#e5d36b','#b5c7a1','#e0a58a']},
   vivas:{n:'Vivas',c:['#f6b73c','#3fae6a','#e4572e','#2e86de','#9b59b6','#17bebb','#ff6f91','#8bc34a']},
@@ -16,7 +16,8 @@ const PALS={
   custom:{n:'Personalizada',c:[]}
 };
 const RAMPS={
-  turmalina:{n:'Tauá à turmalina (padrão)',s:['#f3e9c6','#a9d6b4','#3f9c7c','#0f3d30']},
+  barro:{n:'Do tauá ao barro (padrão)',s:['#f3e9c6','#e4b07f','#bb5c3c','#4a1d0e']},
+  turmalina:{n:'Tauá à turmalina',s:['#f3e9c6','#a9d6b4','#3f9c7c','#0f3d30']},
   laranja:{n:'Laranja',s:['#fde8c8','#8a3b12']},
   azul:{n:'Azul',s:['#e3f0fb','#08306b']},
   verde:{n:'Verde',s:['#e5f5e0','#00441b']},
@@ -27,12 +28,12 @@ const RAMPS={
   arco:{n:'Azul ao vermelho',s:['#2b83ba','#abdda4','#ffffbf','#fdae61','#d7191c']},
   custom:{n:'Personalizada',s:[]}
 };
-const C0=()=>({pal:'vale',cm:{},ramp:'turmalina',inv:false,r0:'#f3e9c6',r1:'#0f3d30',mun:{},names:'a'});
+const C0=()=>({pal:'vale',cm:{},ramp:'barro',inv:false,r0:'#f3e9c6',r1:'#4a1d0e',mun:{},names:'a'});
 let C=C0();
 const HX=/^#[0-9a-f]{6}$/i,hx=(c,d)=>HX.test(c)?c:d;
 (function(){try{const s=JSON.parse(localStorage.getItem('jq_cores5')||'null');
   if(s&&typeof s==='object'){C=C0();['pal','cm','ramp','inv','r0','r1','mun','names'].forEach(k=>{if(k in s)C[k]=s[k]});
-    if(!hasOwn(PALS,C.pal))C.pal='vale';if(!hasOwn(RAMPS,C.ramp))C.ramp='turmalina';
+    if(!hasOwn(PALS,C.pal))C.pal='vale';if(!hasOwn(RAMPS,C.ramp))C.ramp='barro';
     if(!C.cm||typeof C.cm!=='object')C.cm={};if(!C.mun||typeof C.mun!=='object')C.mun={};
     C.inv=!!C.inv;if(C.names!=='t')C.names='a'}}catch(e){}})();
 const saveC=()=>{try{localStorage.setItem('jq_cores5',JSON.stringify(C))}catch(e){}};
@@ -126,7 +127,7 @@ function build(d){
 /* Traços: largura em pixels de tela = largura × unidades-por-pixel (sem vector-effect, que é lento em contornos grandes). */
 function sty(){const u=st.upp;$('#sty').textContent=`path{stroke-linejoin:round}#o path{fill:var(--ol);stroke:var(--ol);stroke-width:${3.2*u}px}.m{stroke:var(--ms);stroke-width:${.7*u}px;cursor:pointer}@media(hover:hover){.m:hover{stroke:var(--fg);stroke-width:${1.8*u}px}}.m.sel{stroke:var(--rb);stroke-width:${2.6*u}px}.m:focus-visible{stroke:var(--focus);stroke-width:${3.5*u}px}`}
 /* Estilo da exportação (SVG/PNG): traço de largura fixa na imagem. */
-const styExp=s=>`path{vector-effect:non-scaling-stroke;stroke-linejoin:round}#o path{fill:#13231d;stroke:#13231d;stroke-width:${3.2*s}px}.m{stroke:#2b3d35;stroke-width:${.7*s}px}.m.sel{stroke:#b8325e;stroke-width:${2.4*s}px}`;
+const styExp=s=>`path{vector-effect:non-scaling-stroke;stroke-linejoin:round}#o path{fill:#141414;stroke:#141414;stroke-width:${3.2*s}px}.m{stroke:#2b3d35;stroke-width:${.7*s}px}.m.sel{stroke:#b8325e;stroke-width:${2.4*s}px}`;
 /* ===== v6: geometria por nível de zoom (LOD) =====
    Cada contorno é simplificado (Douglas-Peucker) com tolerância de no máximo 0,4 pixel de tela no zoom atual,
    então a imagem na tela é indistinguível da malha completa; só desenha o que está na tela; e guarda o resultado.
@@ -191,7 +192,7 @@ function pole(pts,cen){
 function layoutLabels(cx,cy,upp,W,H,fs,all,obs=[]){
   const out=[],placed=[],pad=3,order=[...F].sort((a,b)=>(b===sel)-(a===sel)||b.area-a.area);
   for(const f of order){
-    const sx=(f.pin[0]-cx)/upp+W/2,sy=(f.pin[1]-cy)/upp+H/2,w=f.nome.length*fs*.58+6,h=fs*1.3,r=[sx-w/2,sy-h/2,sx+w/2,sy+h/2];
+    const sx=(f.pin[0]-cx)/upp+W/2,sy=(f.pin[1]-cy)/upp+H/2,w=f.nome.length*fs*.6+6,h=fs*1.3,r=[sx-w/2,sy-h/2,sx+w/2,sy+h/2];
     if(r[0]<0||r[2]>W||r[1]<0||r[3]>H)continue;
     if(!all&&f!==sel){
       const pw=(f.bb[2]-f.bb[0])/upp;
@@ -211,7 +212,7 @@ function applyLabels(){
   const fs=window.matchMedia&&matchMedia('(pointer:coarse)').matches?13:12,all=C.names==='t',vis=new Set(layoutLabels(st.cx,st.cy,st.upp,W,H,fs,all,all?[]:obstacles()));
   g.setAttribute('font-size',fs*st.upp);g.setAttribute('stroke-width',fs*.3*st.upp);g.setAttribute('stroke-linejoin','round');
   F.forEach(f=>{const t=f.tx,on=vis.has(f);t.style.display=on?'':'none';
-    if(on){t.setAttribute('font-weight',f===sel?'800':'600');t.setAttribute('fill',f===sel?'#8f1f47':'#13231d')}});
+    if(on){t.setAttribute('font-weight',f===sel?'800':'600');t.setAttribute('fill',f===sel?'#9a4526':'#141414')}});
   const inView=F.filter(f=>{const x=(f.pin[0]-st.cx)/st.upp+W/2,y=(f.pin[1]-st.cy)/st.upp+H/2;return x>=0&&x<=W&&y>=0&&y<=H}).length;
   h.hidden=all||vis.size>=inView;
   const tx=`Mostrando ${vis.size} de ${inView} nomes na tela. Aproxime o mapa para ver os demais, ou escolha “Todos os nomes” em Personalizar cores.`;
@@ -219,7 +220,7 @@ function applyLabels(){
 function fillExportLabels(l,cx,cy,upp,Wp,Hp,s){
   const fs=12*s,vis=layoutLabels(cx,cy,upp,Wp,Hp,fs,C.names==='t');
   l.setAttribute('font-size',fs*upp);l.setAttribute('stroke-width',fs*.3*upp);l.setAttribute('stroke-linejoin','round');
-  l.innerHTML=vis.map(f=>`<text x="${f.pin[0].toFixed(1)}" y="${f.pin[1].toFixed(1)}" dy=".35em"${f===sel?' font-weight="800" fill="#8f1f47"':''}>${esc(f.nome)}</text>`).join('')}
+  l.innerHTML=vis.map(f=>`<text x="${f.pin[0].toFixed(1)}" y="${f.pin[1].toFixed(1)}" dy=".35em"${f===sel?' font-weight="800" fill="#9a4526"':''}>${esc(f.nome)}</text>`).join('')}
 
 /* Redesenho no máximo uma vez por quadro; nomes são reposicionados só quando o gesto para (evita travar ao arrastar/zoom). */
 let raf=0,labT=0,lastU=0;
@@ -258,7 +259,7 @@ const DUP={p:'pop_censo',d:'densidade',b:'pib',c:'pib_per_capita',s:'san_esgoto_
 const noVal=(M,v)=>v==null||(!M.z&&v<=0);
 const valTxt=f=>{const M=MODES[mode],v=valOf(f);return noVal(M,v)?'sem dado':fv(M,v)};
 const valOf=f=>mode==='m'?0:MODES[mode].v(f);
-const fillOf=f=>hx(C.mun[f.id],null)||(mode==='m'?microColor(micros.indexOf(f.micro)):(RAMP&&RAMP.get(f))||'#d3dbd5');
+const fillOf=f=>hx(C.mun[f.id],null)||(mode==='m'?microColor(micros.indexOf(f.micro)):(RAMP&&RAMP.get(f))||'#d8d0c3');
 const legMicro=()=>'<div class="lt">Microrregiões</div><div class="lh">Clique para destacar uma</div>'+micros.map((m,i)=>`<div class="lg" role="button" tabindex="0" aria-pressed="false" data-m="${m}"><i style="background:${microColor(i)}"></i>${m}</div>`).join('');
 const fv=(M,x)=>(M.pre||'')+f1(x,M.d)+(M.u||'');
 /* QF: faixa da legenda escolhida (só os municípios dela ficam fortes); QM: município → faixa; RK: município → posição (1 = maior) */
@@ -293,13 +294,13 @@ function togglePlay(b){if(PLAY)return stopPlay();const r=$('#yr');if(+r.value>=+
 $('#leg').addEventListener('input',e=>{if(e.target.id!=='yr'||mode==='m')return;setYear(+e.target.value)});
 function refreshColors(){if(!F.length)return;setMode(mode);renderList()}
 $('#bMod').onchange=e=>setMode(e.target.value);
-function paint(){F.forEach(f=>{f.el.setAttribute('fill',colored?fillOf(f):'#d3dbd5');
+function paint(){F.forEach(f=>{f.el.setAttribute('fill',colored?fillOf(f):'#d8d0c3');
   f.el.style.opacity=((focus&&f.micro!==focus)||(QF!=null&&mode!=='m'&&QM.get(f)!==QF))?.25:1;f.el.classList.toggle('sel',f===sel)});
   if(sel)sel.el.parentNode.appendChild(sel.el);
   document.querySelectorAll('.lg').forEach(e=>{e.classList.toggle('off',!!focus&&e.dataset.m!==focus);e.setAttribute('aria-pressed',String(focus===e.dataset.m))});applyLabels()}
 const MODEKEYS=['m','p','d','b','c','a','s'],ID=/^\d{6,8}$/;
 function syncHash(){try{const q=new URLSearchParams();if(sel)q.set('c',sel.id);if(mode!=='m'){q.set('m',mode);if(MODES[mode].yrs&&YR)q.set('y',YR)}
-  if(C.pal!=='vale'&&C.pal!=='custom')q.set('pal',C.pal);if(C.ramp!=='turmalina'&&C.ramp!=='custom')q.set('rp',C.ramp);if(C.inv)q.set('iv','1');
+  if(C.pal!=='vale'&&C.pal!=='custom')q.set('pal',C.pal);if(C.ramp!=='barro'&&C.ramp!=='custom')q.set('rp',C.ramp);if(C.inv)q.set('iv','1');
   const h=q.toString();history.replaceState(null,'',h?'#'+h:location.pathname+location.search)}catch(e){}}
 function readHash(){const h=location.hash.slice(1),o={c:null,m:null,y:null,pal:null,rp:null,iv:false};if(ID.test(h)){o.c=h;return o}
   try{const q=new URLSearchParams(h),c=q.get('c'),m=q.get('m'),y=q.get('y'),pal=q.get('pal'),rp=q.get('rp');
@@ -372,7 +373,7 @@ function snap(Wp){const pad=1.06,ew=bb.w*pad,eh=bb.h*pad,Hp=Math.round(Wp*eh/ew)
   const l=c.querySelector('#l');fillExportLabels(l,bb.cx,bb.cy,ew/Wp,Wp,Hp,s);l.style.display=showLab?'':'none';
   c.insertAdjacentHTML('afterbegin',`<rect x="${x}" y="${y}" width="${ew}" height="${eh}" fill="#e6ece7"/>`);
   const st0=c.querySelector('#sty');c.insertBefore(st0,c.firstChild);
-  c.insertAdjacentHTML('beforeend',`<text x="${x+ew*.015}" y="${y+eh-eh*.02}" font-size="${14*s*ew/Wp}" fill="#52615a" font-family="Barlow, system-ui, sans-serif">Mapa do Vale do Jequitinhonha. Malha municipal: IBGE</text>`);
+  c.insertAdjacentHTML('beforeend',`<text x="${x+ew*.015}" y="${y+eh-eh*.02}" font-size="${14*s*ew/Wp}" fill="#5e574d" font-family="Inter, system-ui, sans-serif">Mapa do Vale do Jequitinhonha. Malha municipal: IBGE</text>`);
   const xml=new XMLSerializer().serializeToString(c);F.forEach(f=>f.raw=null);
   return{xml,Wp,Hp}}
 function dl(b,n){const a=document.createElement('a'),u=URL.createObjectURL(b);a.href=u;a.download=n;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),5000)}
@@ -593,7 +594,7 @@ function renderCp(){
   const pals=Object.entries(PALS).map(([k,p])=>`<button type="button" class="pal" data-pal="${k}" aria-pressed="${C.pal===k}">${swatch(k==='custom'?micros.map((m,i)=>microColor(i)):p.c.slice(0,6))}<span>${p.n}</span></button>`).join('');
   const mic=micros.map((m,i)=>`<label class="cr"><input type="color" data-micro="${i}" value="${microColor(i)}"><span>${m}</span></label>`).join('');
   const rps=Object.entries(RAMPS).map(([k,r])=>`<button type="button" class="pal" data-ramp="${k}" aria-pressed="${C.ramp===k}"><span class="gr" aria-hidden="true" style="background:linear-gradient(90deg,${k==='custom'?hx(C.r0,'#fde8c8')+','+hx(C.r1,'#8a3b12'):r.s.join(',')})"></span><span>${r.n}</span></button>`).join('');
-  const nm=Object.keys(C.mun).length,cur=sel?hx(C.mun[sel.id],hx(fillOf(sel),'#d3dbd5')):'';
+  const nm=Object.keys(C.mun).length,cur=sel?hx(C.mun[sel.id],hx(fillOf(sel),'#d8d0c3')):'';
   b.innerHTML=
   `<section aria-labelledby="c1"><h3 id="c1">Cores das microrregiões</h3><div class="pals">${pals}</div><details${C.pal==='custom'?' open':''}><summary>Escolher a cor de cada microrregião</summary><div class="crs">${mic}</div></details></section>`+
   `<section aria-labelledby="c2"><h3 id="c2">Escala dos indicadores</h3><p class="hint">Use o seletor “Cor:” no topo para colorir o mapa por um indicador.</p><div class="pals" style="margin-top:8px">${rps}</div>`+

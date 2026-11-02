@@ -3,28 +3,28 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://servicodados.ibge.gov.br; font-src 'self'; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<title>Mapa do Vale do Jequitinhonha</title>
+<title>Mapa do Vale do Jequitinhonha · Polis Jequitinhonha</title>
 <meta name="description" content="Mapa interativo dos 51 municípios da Mesorregião Jequitinhonha (MG) com 56 indicadores socioeconômicos oficiais (IBGE, Atlas do Desenvolvimento Humano, INEP, DATASUS) e os prefeitos e vereadores eleitos de 1996 a 2024 (TSE), cada um com fonte, ano e avisos.">
-<meta name="theme-color" content="#13231d">
+<meta name="theme-color" content="#bb5c3c">
 <link rel="canonical" href="https://lazanha000.github.io/mapa-valedojequitinhonha/">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="pt_BR">
-<meta property="og:title" content="Mapa do Vale do Jequitinhonha">
+<meta property="og:title" content="Mapa do Vale do Jequitinhonha · Polis Jequitinhonha">
 <meta property="og:description" content="51 municípios, 56 indicadores oficiais (população, economia, agropecuária, saneamento, educação, saúde e IDHM), com fonte de cada número.">
 <meta property="og:url" content="https://lazanha000.github.io/mapa-valedojequitinhonha/">
 <meta property="og:image" content="https://lazanha000.github.io/mapa-valedojequitinhonha/og.png">
 <meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Mapa dos municípios do Vale do Jequitinhonha coloridos por microrregião">
+<meta property="og:image:alt" content="Polis Jequitinhonha: selo com o contorno do Vale sobre fundo terra">
 <meta name="twitter:card" content="summary_large_image">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Dataset","name":"Indicadores socioeconômicos dos 51 municípios do Vale do Jequitinhonha (MG)","description":"56 indicadores oficiais por município da Mesorregião Jequitinhonha (IBGE): população, economia, agropecuária, saneamento, educação, saúde e desenvolvimento humano. Fontes: IBGE/SIDRA, Atlas do Desenvolvimento Humano (PNUD/IPEA/FJP, via IPEADATA), INEP e DATASUS.","url":"https://lazanha000.github.io/mapa-valedojequitinhonha/","inLanguage":"pt-BR","isAccessibleForFree":true,"temporalCoverage":"1970/2026","spatialCoverage":{"@type":"Place","name":"Mesorregião Jequitinhonha, Minas Gerais, Brasil"},"isBasedOn":["https://sidra.ibge.gov.br/","http://www.ipeadata.gov.br/","https://www.gov.br/inep/","https://datasus.saude.gov.br/"],"distribution":[{"@type":"DataDownload","encodingFormat":"application/json","contentUrl":"https://lazanha000.github.io/mapa-valedojequitinhonha/indicadores.json"}]}</script>
 <link rel="stylesheet" href="style.css"></head><body>
 <a class="skip" href="#q" data-skip="q">Pular para a lista de municípios</a><a class="skip" href="#map" data-skip="map">Pular para o mapa</a>
 <noscript><p style="padding:16px;margin:0;background:#fff4d6;color:#3a2a00">Este mapa precisa de JavaScript ligado no navegador para funcionar.</p></noscript>
 <header>
-<h1><svg class="logo" viewBox="4 6 56 54" aria-hidden="true"><g stroke-linejoin="round"><path d="M32 9Q49 26 57 52Q32 58 7 52Q15 26 32 9z" fill="#2f8f6f" stroke="#2f8f6f" stroke-width="5"/><path d="M32 20Q42.5 30.6 48.1 47.3Q32 50.4 15.9 47.3Q21.5 30.6 32 20z" fill="#9fd8bd" stroke="#9fd8bd" stroke-width="2"/><path d="M32 29Q37.1 34.4 39.8 42.5Q32 44 24.2 42.5Q26.9 34.4 32 29z" fill="#e2668f" stroke="#e2668f" stroke-width="2"/></g></svg><span>Vale do Jequitinhonha<small id="sub">carregando…</small></span></h1>
+<h1><picture><source media="print" srcset="marca-papel.svg"><source media="(prefers-color-scheme:dark)" srcset="marca-tinta.svg"><img class="marca" src="marca-terra.svg" alt="Polis Jequitinhonha" width="152" height="46"></picture><span class="sr">: mapa do Vale do Jequitinhonha</span><small id="sub">carregando…</small></h1>
 <button id="bMenu" type="button" aria-expanded="false" aria-controls="hmenu">☰ Menu</button>
 <div id="hmenu"><select id="bMod" aria-label="Colorir o mapa por"><option value="m">Cor: microrregião</option><option value="p" disabled>Cor: população</option><option value="d" disabled>Cor: densidade</option><option value="b" disabled>Cor: PIB</option><option value="c" disabled>Cor: PIB per capita</option><option value="a" disabled>Cor: alfabetização</option><option value="s" disabled>Cor: esgoto adequado</option></select>
 <div id="hb"><button id="bCor" class="on" aria-pressed="true">Cores</button><button id="bNom" aria-pressed="false">Nomes</button>
@@ -38,7 +38,7 @@
 <div id="info" aria-live="polite"><p class="empty">Clique em um município no mapa ou na lista para ver os dados dele.</p></div>
 </aside>
 <div id="stage">
-<svg id="map" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Mapa dos municípios do Vale do Jequitinhonha. Use Tab para percorrer os municípios, Enter para selecionar, setas para mover o mapa e + ou − para aproximar."><style id="sty"></style><g id="o"></g><g id="m"></g><g id="l" fill="#13231d" stroke="#fff" font-family="Barlow Condensed, Barlow, system-ui, sans-serif" paint-order="stroke" text-anchor="middle" font-weight="600" style="display:none;pointer-events:none"></g></svg>
+<svg id="map" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Mapa dos municípios do Vale do Jequitinhonha. Use Tab para percorrer os municípios, Enter para selecionar, setas para mover o mapa e + ou − para aproximar."><style id="sty"></style><g id="o"></g><g id="m"></g><g id="l" fill="#141414" stroke="#efe8dc" font-family="Inter, system-ui, sans-serif" paint-order="stroke" text-anchor="middle" font-weight="600" style="display:none;pointer-events:none"></g></svg>
 <div id="ctl"><button id="zi" aria-label="Aproximar">+</button><button id="zo" aria-label="Afastar">−</button><button id="zr" title="Ver tudo" aria-label="Ver o mapa inteiro">⌂</button></div>
 <button id="openSide" hidden aria-controls="side" aria-expanded="false" aria-label="Abrir a lista de municípios">☰ Lista</button>
 <div id="mini" hidden></div>
@@ -48,7 +48,7 @@
 <div id="msg" class="ld">Carregando a malha oficial do IBGE…</div>
 </div>
 </main>
-<footer>Mapa: malha municipal oficial do IBGE, qualidade máxima (áreas calculadas a partir dela são aproximadas). Prefeitos e vereadores: TSE. Indicadores: IBGE/SIDRA, Atlas do Desenvolvimento Humano (PNUD/IPEA/FJP, via IPEADATA), INEP e DATASUS, conferidos com a resposta original de cada fonte; fonte e avisos de cada número na ficha do município.</footer>
+<footer>@polisjequi. Mapa: malha municipal oficial do IBGE, qualidade máxima (áreas calculadas a partir dela são aproximadas). Prefeitos e vereadores: TSE. Indicadores: IBGE/SIDRA, Atlas do Desenvolvimento Humano (PNUD/IPEA/FJP, via IPEADATA), INEP e DATASUS, conferidos com a resposta original de cada fonte; fonte e avisos de cada número na ficha do município.</footer>
 <div id="dlg" hidden><div class="box" role="dialog" aria-modal="true" aria-labelledby="dtitle"><div class="dhead"><div><h2 id="dtitle"></h2><div class="dsub" id="dsub"></div></div><button id="dx" aria-label="Fechar">✕ Fechar</button></div><nav id="dnav" aria-label="Ir para uma seção" hidden></nav><div id="dbody"></div></div></div>
 <div id="tip"></div><div id="err" role="alert"></div><div id="net" role="status" hidden>Sem internet. O mapa continua funcionando com o que já foi carregado.</div><div id="live" class="sr" aria-live="polite"></div>
 <script src="app.js" defer></script></body></html>

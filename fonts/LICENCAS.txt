@@ -1,0 +1,6 @@
+Fontes deste site (todas sob a SIL Open Font License 1.1, https://openfontlicense.org):
+- Shrikhand, de Jonny Pinhorn
+- Inter, de Rasmus Andersson
+- IBM Plex Mono, da IBM
+- Anton, de Vernon Adams
+(Barlow e Barlow Condensed, de Jeremy Tribby, ficam na pasta apenas da versão anterior do site; licença em OFL.txt.)
