@@ -44,6 +44,15 @@ function rampAt(t){const st=rampStops();if(C.inv)t=1-t;const n=st.length-1,x=Mat
 const rampCss=()=>'linear-gradient(90deg,'+[0,.2,.4,.6,.8,1].map(rampAt).join(',')+')';
 
 const $=s=>document.querySelector(s),svg=$('#map'),fmt=n=>n.toLocaleString('pt-BR',{maximumFractionDigits:0});
+/* Alto, Médio e Baixo Jequitinhonha: divisão tradicional, NÃO oficial do IBGE. Fonte: UFVJM, "Lista de cidades do Vale do Jequitinhonha" (PDF, 2011).
+   Outras fontes contam de outro jeito (Embrapa: 17/18/16 municípios; UFMG: 19/17/16). Municípios que não constam na lista: Monte Formoso, Novo Cruzeiro.
+   Cachoeira do Pajeú e Couto Magalhães de Minas (grafia da lista) = Cachoeira de Pajeú e Couto de Magalhães de Minas (IBGE). */
+const REGIAO={3101706:'Baixo',3102704:'Baixo',3102852:'Alto',3103405:'Médio',3104452:'Alto',3105202:'Baixo',3106507:'Médio',3112307:'Alto',3113008:'Médio',3113503:'Alto',3116100:'Médio',3117009:'Médio',3119500:'Médio',3120102:'Alto',3121001:'Alto',3121605:'Alto',3122454:'Baixo',3125408:'Alto',3125507:'Alto',3125606:'Baixo',3126505:'Médio',3127602:'Alto',3132503:'Alto',3133303:'Médio',3134004:'Médio',3134707:'Baixo',3135456:'Médio',3135803:'Baixo',3136009:'Baixo',3136504:'Baixo',3136520:'Médio',3138351:'Alto',3140555:'Baixo',3141405:'Médio',3141801:'Alto',3146305:'Médio',3146750:'Baixo',3148707:'Baixo',3152170:'Médio',3153301:'Alto',3155108:'Baixo',3156601:'Baixo',3157104:'Baixo',3158102:'Baixo',3160306:'Baixo',3165909:'Alto',3169703:'Alto',3171071:'Alto',3171600:'Médio'};
+const REGS=['Alto','Médio','Baixo'],REGCOR={Alto:'#e9d3a0','Médio':'#d29a68',Baixo:'#a9573a'},SEMREG='#c9c1b3';
+let GRP='m';/* agrupamento do modo categórico: 'm' = microrregião, 'r' = Alto/Médio/Baixo */
+const grpOf=f=>GRP==='r'?(f.reg||'Sem classificação'):f.micro;
+const grpList=()=>GRP==='r'?[...REGS,...(F.some(f=>!f.reg)?['Sem classificação']:[])]:micros;
+const regTxt=f=>f.reg?`, ${f.reg} Jequitinhonha`:'';
 let F=[],micros=[],bb,W=1,H=1,st={cx:0,cy:0,upp:1},fit=1,sel=null,colored=true,focus=null,showLab=false;
 
 let diag=[];
@@ -82,7 +91,7 @@ function centroid(p){let A=0,cx=0,cy=0;const[ox,oy]=p[0];for(let i=0;i<p.length;
 
 function build(d){
   d=validar(d);const HS=readHash();if(HS.pal)C.pal=HS.pal;if(HS.rp)C.ramp=HS.rp;if(HS.iv)C.inv=true;
-  const info={};d.muns.forEach(m=>info[m.id]={id:String(m.id),nome:m.nome,micro:m.microrregiao.nome});
+  const info={};d.muns.forEach(m=>info[m.id]={id:String(m.id),nome:m.nome,micro:m.microrregiao.nome,reg:REGIAO[String(m.id)]||null});
   micros=[...new Set(d.muns.map(m=>m.microrregiao.nome))].sort();
   const k=Math.cos(-17.5*Math.PI/180),S=1000,P=p=>[p[0]*k*S,-p[1]*S];
   let X0=1e9,X1=-1e9,Y0=1e9,Y1=-1e9;
@@ -121,8 +130,9 @@ function build(d){
     if(ORDS[$('#ord').value])renderList();
     if(DUP[HS.m]&&MODES['i_'+DUP[HS.m]])HS.m='i_'+DUP[HS.m];
     if(HS.m&&HS.m!=='m'&&(ok[HS.m]||(/^i_/.test(HS.m)&&MODES[HS.m]))){if(HS.y)YR=HS.y;$('#bMod').value=HS.m;setMode(HS.m)}});
+  if(HS.g&&!HS.m){$('#bMod').value='r';setMode('r')}
   const hf=HS.c&&F.find(x=>x.id===HS.c);if(hf)pick(hf,true);
-  $('#fm').innerHTML='<option value="">Todas as microrregiões</option>'+micros.map(m=>`<option value="${m}">${m}</option>`).join('');
+  fillFm();
 }
 /* Traços: largura em pixels de tela = largura × unidades-por-pixel (sem vector-effect, que é lento em contornos grandes). */
 function sty(){const u=st.upp;$('#sty').textContent=`path{stroke-linejoin:round}#o path{fill:var(--ol);stroke:var(--ol);stroke-width:${3.2*u}px}.m{stroke:var(--ms);stroke-width:${.7*u}px;cursor:pointer}@media(hover:hover){.m:hover{stroke:var(--fg);stroke-width:${1.8*u}px}}.m.sel{stroke:var(--rb);stroke-width:${2.6*u}px}.m:focus-visible{stroke:var(--focus);stroke-width:${3.5*u}px}`}
@@ -259,8 +269,9 @@ const DUP={p:'pop_censo',d:'densidade',b:'pib',c:'pib_per_capita',s:'san_esgoto_
 const noVal=(M,v)=>v==null||(!M.z&&v<=0);
 const valTxt=f=>{const M=MODES[mode],v=valOf(f);return noVal(M,v)?'sem dado':fv(M,v)};
 const valOf=f=>mode==='m'?0:MODES[mode].v(f);
-const fillOf=f=>hx(C.mun[f.id],null)||(mode==='m'?microColor(micros.indexOf(f.micro)):(RAMP&&RAMP.get(f))||'#d8d0c3');
-const legMicro=()=>'<div class="lt">Microrregiões</div><div class="lh">Clique para destacar uma</div>'+micros.map((m,i)=>`<div class="lg" role="button" tabindex="0" aria-pressed="false" data-m="${m}"><i style="background:${microColor(i)}"></i>${m}</div>`).join('');
+const fillOf=f=>hx(C.mun[f.id],null)||(mode==='m'?(GRP==='r'?(REGCOR[f.reg]||SEMREG):microColor(micros.indexOf(f.micro))):(RAMP&&RAMP.get(f))||'#d8d0c3');
+const legReg=()=>'<div class="lt">Alto, Médio e Baixo Jequitinhonha</div><div class="lh">Clique para destacar uma região</div>'+grpList().map(g=>`<div class="lg" role="button" tabindex="0" aria-pressed="false" data-m="${g}"><i style="background:${REGCOR[g]||SEMREG}"></i>${g} (${F.filter(f=>grpOf(f)===g).length})</div>`).join('')+'<details class="lnote"><summary>Sobre esta divisão</summary><p>Divisão tradicional, não oficial do IBGE. Vale a lista da UFVJM (2011); outras fontes (Embrapa, UFMG) contam de outro jeito. Novo Cruzeiro e Monte Formoso não constam nela e ficam sem classificação. Cores fixas.</p></details>';
+const legMicro=()=>GRP==='r'?legReg():'<div class="lt">Microrregiões</div><div class="lh">Clique para destacar uma</div>'+micros.map((m,i)=>`<div class="lg" role="button" tabindex="0" aria-pressed="false" data-m="${m}"><i style="background:${microColor(i)}"></i>${m}</div>`).join('');
 const fv=(M,x)=>(M.pre||'')+f1(x,M.d)+(M.u||'');
 /* QF: faixa da legenda escolhida (só os municípios dela ficam fortes); QM: município → faixa; RK: município → posição (1 = maior) */
 let QF=null,QM=new Map(),RK=new Map(),RN=0;
@@ -276,8 +287,9 @@ function recolor(){const M=MODES[mode],a=F.map(f=>[f,valOf(f)]).filter(x=>!noVal
     (M.note?`<details class="lnote"><summary>Sobre este indicador</summary><p>${esc(M.note)}</p></details>`:'');
   paint()}
 const say=t=>{const l=$('#live');l.textContent='';setTimeout(()=>{l.textContent=t},60)};
-function setMode(v){mode=MODES[v]?v:'m';const L=$('#legB');stopPlay();QF=null;
-  say(mode==='m'?'Mapa colorido por microrregião':'Mapa colorido por '+MODES[mode].t);
+function setMode(v){if(v==='r'||v==='m'){const g=v==='r'?'r':'m';if(g!==GRP){GRP=g;focus=null;fillFm()}}
+  mode=MODES[v]?v:'m';const L=$('#legB');stopPlay();QF=null;
+  say(mode==='m'?(GRP==='r'?'Mapa colorido por Alto, Médio e Baixo Jequitinhonha':'Mapa colorido por microrregião'):'Mapa colorido por '+MODES[mode].t);
   const om=$('#ord option[value=mp]');om.disabled=mode==='m';if(mode==='m'&&$('#ord').value==='mp')$('#ord').value='a';
   if(mode==='m'){RAMP=null;L.innerHTML=legMicro();syncHash();paint();renderList();refreshInfo();return}
   const M=MODES[mode],ys=M.yrs?yrsOf(M.yrs):[];
@@ -292,20 +304,20 @@ function togglePlay(b){if(PLAY)return stopPlay();const r=$('#yr');if(+r.value>=+
   b.textContent='❚❚ Parar';b.setAttribute('aria-pressed','true');
   PLAY=setInterval(()=>{const r=$('#yr');if(!r||+r.value>=+r.max)return stopPlay();setYear(+r.value+1)},900)}
 $('#leg').addEventListener('input',e=>{if(e.target.id!=='yr'||mode==='m')return;setYear(+e.target.value)});
-function refreshColors(){if(!F.length)return;setMode(mode);renderList()}
+function refreshColors(){if(!F.length)return;setMode(mode==='m'&&GRP==='r'?'r':mode);renderList()}
 $('#bMod').onchange=e=>setMode(e.target.value);
 function paint(){F.forEach(f=>{f.el.setAttribute('fill',colored?fillOf(f):'#d8d0c3');
-  f.el.style.opacity=((focus&&f.micro!==focus)||(QF!=null&&mode!=='m'&&QM.get(f)!==QF))?.25:1;f.el.classList.toggle('sel',f===sel)});
+  f.el.style.opacity=((focus&&grpOf(f)!==focus)||(QF!=null&&mode!=='m'&&QM.get(f)!==QF))?.25:1;f.el.classList.toggle('sel',f===sel)});
   if(sel)sel.el.parentNode.appendChild(sel.el);
   document.querySelectorAll('.lg').forEach(e=>{e.classList.toggle('off',!!focus&&e.dataset.m!==focus);e.setAttribute('aria-pressed',String(focus===e.dataset.m))});applyLabels()}
 const MODEKEYS=['m','p','d','b','c','a','s'],ID=/^\d{6,8}$/;
 function syncHash(){try{const q=new URLSearchParams();if(sel)q.set('c',sel.id);if(mode!=='m'){q.set('m',mode);if(MODES[mode].yrs&&YR)q.set('y',YR)}
-  if(C.pal!=='vale'&&C.pal!=='custom')q.set('pal',C.pal);if(C.ramp!=='barro'&&C.ramp!=='custom')q.set('rp',C.ramp);if(C.inv)q.set('iv','1');
+  if(C.pal!=='vale'&&C.pal!=='custom')q.set('pal',C.pal);if(C.ramp!=='barro'&&C.ramp!=='custom')q.set('rp',C.ramp);if(C.inv)q.set('iv','1');if(GRP==='r'&&mode==='m')q.set('g','r');
   const h=q.toString();history.replaceState(null,'',h?'#'+h:location.pathname+location.search)}catch(e){}}
-function readHash(){const h=location.hash.slice(1),o={c:null,m:null,y:null,pal:null,rp:null,iv:false};if(ID.test(h)){o.c=h;return o}
+function readHash(){const h=location.hash.slice(1),o={c:null,m:null,y:null,pal:null,rp:null,iv:false,g:false};if(ID.test(h)){o.c=h;return o}
   try{const q=new URLSearchParams(h),c=q.get('c'),m=q.get('m'),y=q.get('y'),pal=q.get('pal'),rp=q.get('rp');
     if(ID.test(c||''))o.c=c;if(MODEKEYS.includes(m)||/^i_[a-z0-9_]+$/.test(m||''))o.m=m;if(/^\d{4}$/.test(y||''))o.y=y;
-    if(pal&&hasOwn(PALS,pal)&&pal!=='custom')o.pal=pal;if(rp&&hasOwn(RAMPS,rp)&&rp!=='custom')o.rp=rp;o.iv=q.get('iv')==='1'}catch(e){}return o}
+    if(pal&&hasOwn(PALS,pal)&&pal!=='custom')o.pal=pal;if(rp&&hasOwn(RAMPS,rp)&&rp!=='custom')o.rp=rp;o.iv=q.get('iv')==='1';o.g=q.get('g')==='r'}catch(e){}return o}
 function pick(f,zoom){sel=f;paint();syncHash();document.title=f.nome+' — Mapa do Vale do Jequitinhonha';
   $('#info').innerHTML=infoHtml(f);updMini();if(!$('#cp').hidden)renderCp();
   document.querySelectorAll('#list .it').forEach(e=>{const s=e.dataset.id==f.id;e.classList.toggle('s',s);if(s)e.setAttribute('aria-current','true');else e.removeAttribute('aria-current')});
@@ -313,12 +325,13 @@ function pick(f,zoom){sel=f;paint();syncHash();document.title=f.nome+' — Mapa 
 const pp=f=>(IND&&IND.pop&&IND.pop[f.id]&&IND.pop[f.id]['2022'])||0;
 const ORDS={p:[f=>pp(f),v=>fmt(v)+' hab.'],dn:[f=>stats(f).den||0,v=>f1(v,1)+' hab/km²'],pc:[f=>stats(f).pc||0,v=>'R$ '+fmt(v)],ia:[f=>stats(f).alf||0,v=>f1(v,1)+'%'],
   mp:[f=>{const v=valOf(f);return mode==='m'||noVal(MODES[mode],v)?-Infinity:v},v=>v===-Infinity?'sem dado':fv(MODES[mode],v)]};
+function fillFm(){$('#fm').innerHTML=`<option value="">Todas as ${GRP==='r'?'regiões':'microrregiões'}</option>`+grpList().map(m=>`<option value="${m}">${m}</option>`).join('');$('#fm').setAttribute('aria-label',GRP==='r'?'Filtrar por região':'Filtrar por microrregião')}
 function renderList(){const q=nrm($('#q').value.trim()),o=$('#ord').value,fmv=$('#fm').value;let h='';
-  const L=F.filter(f=>f.key.includes(q)&&(!fmv||f.micro===fmv));
+  const L=F.filter(f=>f.key.includes(q)&&(!fmv||grpOf(f)===fmv));
   if(ORDS[o])h=[...L].sort((a,b)=>(ORDS[o][0](b)-ORDS[o][0](a))||a.nome.localeCompare(b.nome,'pt')).map(it).join('');
   else if(o==='b')h=[...L].sort((a,b)=>b.area-a.area).map(it).join('');
-  else micros.forEach((m,i)=>{const l=L.filter(f=>f.micro===m).sort((a,b)=>a.nome.localeCompare(b.nome,'pt'));
-    if(l.length)h+=`<h3><i style="background:${microColor(i)}"></i>${m} (${l.length})</h3>`+l.map(it).join('')});
+  else grpList().forEach((m,i)=>{const l=L.filter(f=>grpOf(f)===m).sort((a,b)=>a.nome.localeCompare(b.nome,'pt'));
+    if(l.length)h+=`<h3><i style="background:${GRP==='r'?(REGCOR[m]||SEMREG):microColor(i)}"></i>${m} (${l.length})</h3>`+l.map(it).join('')});
   $('#list').innerHTML=h||'<p>Nada encontrado.</p>'}
 const it=f=>{const o=ORDS[$('#ord').value];return `<div class="it${f===sel?' s':''}" role="button" tabindex="0" data-id="${f.id}"${f===sel?' aria-current="true"':''}>${f.nome}<span>${esc(o?o[1](o[0](f)):fmt(f.area)+' km²')}</span></div>`};
 
@@ -380,8 +393,8 @@ function dl(b,n){const a=document.createElement('a'),u=URL.createObjectURL(b);a.
 /* v7: uma coluna por indicador (ano mais recente com dado); séries completas ficam nos CSV do projeto de coleta */
 $('#bCsv').onclick=async()=>{await INDP;const q=v=>'"'+String(v).replace(/"/g,'""')+'"',c=v=>v==null?'':String(v).replace('.',','),
   K=Object.keys((IND&&IND._meta)||{}).map(k=>[k,yrsOf(k).pop()]).filter(x=>x[1]),
-  L=[['codigo_ibge','municipio','microrregiao','area_malha_km2',...K.map(([k,y])=>k+'_'+y)].join(';')];
-  F.forEach(f=>L.push([f.id,q(f.nome),q(f.micro),f.area.toFixed(1).replace('.',','),...K.map(([k,y])=>c(at(IND[k][f.id],y)))].join(';')));
+  L=[['codigo_ibge','municipio','microrregiao','regiao_tradicional','area_malha_km2',...K.map(([k,y])=>k+'_'+y)].join(';')];
+  F.forEach(f=>L.push([f.id,q(f.nome),q(f.micro),q(f.reg||''),f.area.toFixed(1).replace('.',','),...K.map(([k,y])=>c(at(IND[k][f.id],y)))].join(';')));
   dl(new Blob(['\ufeff'+L.join('\n')],{type:'text/csv;charset=utf-8'}),'jequitinhonha.csv')};
 $('#bSvg').onclick=()=>dl(new Blob([snap(1500).xml],{type:'image/svg+xml'}),'jequitinhonha.svg');
 $('#bPng').onclick=()=>{const{xml,Wp,Hp}=snap(6000),im=new Image(),u=URL.createObjectURL(new Blob([xml],{type:'image/svg+xml'}));
@@ -474,7 +487,7 @@ $('#dnav').onclick=e=>{const b=e.target.closest('button[data-go]');if(!b)return;
   s.scrollIntoView({behavior:window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'});
   const h=s.querySelector('h3');if(h)h.focus({preventScroll:true})};
 async function openMun(f){
-  const sub=`Microrregião de ${f.micro}, código IBGE ${f.id}`;
+  const sub=`Microrregião de ${f.micro}${regTxt(f)}, código IBGE ${f.id}`;
   openDlg(f.nome,sub,'<p class="load">Carregando dados…</p>');await INDP;const EL=await getEle();
   const P=IND&&IND.pop&&IND.pop[f.id];if(!P)return openDlg(f.nome,sub,NODATA);
   const p22=at(P,'2022'),p10=at(P,'2010'),a=last(IND.area&&IND.area[f.id]),d=at(IND.den&&IND.den[f.id],'2022'),e=last(IND.est&&IND.est[f.id]);
@@ -486,7 +499,7 @@ async function openMun(f){
     sec('eco','Economia',tb([B?[`PIB (${B.p})`,'R$ '+f1(B.v/1000,1)+' mi','Produto Interno Bruto, em milhões de reais']:['PIB','indisponível'],S.pcy?[`PIB per capita (${S.pcy})`,'R$ '+fmt(S.pc),'PIB dividido pela população do mesmo ano']:B&&pd&&[`PIB per capita${at(P,B.p)?'':' (aprox., pop. 2022)'}`,'R$ '+fmt(B.v*1000/pd),'PIB dividido pelo número de habitantes']]))+
     sec('evo','Evolução',spark(Object.entries((IND.pib&&IND.pib[f.id])||{}),v=>'R$ '+f1(v/1000,1)+' mi','PIB (valores da época, sem correção pela inflação)')+spark(Object.entries(P),v=>fmt(v)+' hab.','População (Censos)'))+
     socialHtml([f])+allHtml(f)+eleHtml(EL&&EL[f.id])+
-    sec('ter','Território',tb([a&&[`Área oficial (${a.p})`,f1(a.v,2)+' km²'],['Municípios na microrregião',mic]]))+
+    sec('ter','Território',tb([a&&[`Área oficial (${a.p})`,f1(a.v,2)+' km²'],['Municípios na microrregião',mic],['Região tradicional',f.reg?f.reg+' Jequitinhonha':'sem classificação na fonte (UFVJM, 2011)']]))+
     `<p class="ext"><a href="https://www.ibge.gov.br/cidades-e-estados/mg/${f.id}.html" target="_blank" rel="noopener noreferrer">Ver página completa no IBGE Cidades <span class="sr">(abre em nova aba)</span> ↗</a></p>`+GL+SRC)}
 function prefHtml(EL){if(!EL)return'';
   const R=F.map(f=>[f,((EL[f.id]||[]).find(e=>!e.s&&e.p)||{})]).filter(r=>r[1].p);if(!R.length)return'';
@@ -508,6 +521,7 @@ async function openVale(){
     hero([['População (Censo 2022)',fmt(t22),'habitantes'],A&&['Área oficial somada',fmt(A),'km²'],A&&['Densidade média',f1(t22/A,1),'hab/km²']])+
     sec('pan','Panorama',tb([both.length&&v10&&['Variação 2010–2022',(v22>=v10?'+':'')+f1((v22/v10-1)*100)+'%'],pv&&[`PIB do Vale (${py})`,'R$ '+f1(pv/1e6,2)+' bi','Produto Interno Bruto somado, em bilhões de reais'],pv&&t22&&['PIB per capita (aprox., pop. 2022)','R$ '+fmt(pv*1000/t22)],top.length>4&&['Maior município',`${top[0].nome} (${fmt(at(IND.pop[top[0].id],'2022'))})`],top.length>4&&['Menor município',`${top[top.length-1].nome} (${fmt(at(IND.pop[top[top.length-1].id],'2022'))})`]]))+
     sec('mic','População por microrregião',tb(mr),'Censo 2022. A barra mostra a parte de cada microrregião no total do Vale.')+
+    sec('reg','População por região tradicional',tb([...REGS.map(g=>{const L=F.filter(x=>x.reg===g),v=sum(L,'2022');return[g+` Jequitinhonha (${L.length} mun.)`,fmt(v)+' hab.','',t22?v/t22*100:0]}),(()=>{const L=F.filter(x=>!x.reg);if(!L.length)return null;const v=sum(L,'2022');return['Sem classificação ('+L.length+' mun.)',fmt(v)+' hab.','',t22?v/t22*100:0]})()]),'Divisão tradicional, não oficial do IBGE: lista da UFVJM (2011). Outras fontes contam de outro jeito.')+
     socialHtml(F)+prefHtml(EL)+
     (n22.length<F.length?`<p class="warn">Atenção: ${F.length-n22.length} município(s) sem dado de 2022 carregado; totais parciais.</p>`:'')+
     GL+SRC)}
@@ -526,7 +540,7 @@ async function openCmp(){
   openDlg('Comparar municípios',CMP.length+' escolhido(s), no máximo 4','<p class="load">Carregando dados…</p>');await INDP;
   if(CMP.length<2)return openDlg('Comparar municípios','','<p class="intro">Escolha pelo menos 2 municípios: selecione um no mapa e use o botão “Comparar com outros”.</p>');
   const S=CMP.map(stats),n=(v,fn)=>v==null?'<span class="sub">indisponível</span>':fn(v),
-    R=[['Microrregião',CMP.map(f=>f.micro)],
+    R=[['Microrregião',CMP.map(f=>f.micro)],['Região tradicional',CMP.map(f=>f.reg?f.reg+' Jequitinhonha':'sem classificação')],
       ['População em 2022 (hab.)',S.map(x=>n(x.pop,fmt))],['Densidade (hab/km²)',S.map(x=>n(x.den,v=>f1(v,2)))],['Área oficial (km²)',S.map(x=>n(x.area,v=>f1(v,1)))],
       ['PIB mais recente',S.map(x=>n(x.pib,b=>'R$ '+f1(b.v/1000,1)+' mi ('+b.p+')'))],['PIB per capita (mais recente)',S.map(x=>n(x.pc,v=>'R$ '+fmt(v)+(x.pcy?' ('+x.pcy+')':'')))],
       ['Alfabetização 15+ (%)',S.map(x=>n(x.alf,v=>f1(v,1)+'%'))],['Esgoto: rede, pluvial ou fossa séptica (%, 2022)',S.map(x=>n(x.esg,v=>f1(v,1)+'%'))],['Lixo coletado (%)',S.map(x=>n(x.lixo,v=>f1(v,1)+'%'))]];
@@ -535,7 +549,7 @@ async function openCmp(){
   openDlg('Comparar municípios',CMP.length+' municípios lado a lado',`<div class="cmpw"><table class="t cmp"><thead><tr><th scope="col"><span class="sr">Indicador</span></th>${CMP.map(f=>`<th scope="col">${f.nome}</th>`).join('')}</tr></thead><tbody>${R.map(r=>`<tr><th scope="row">${r[0]}</th>${r[1].map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div><p class="intro">Dados do IBGE. PIB per capita: PIB dividido pela população do mesmo ano (valores da época).</p><div class="acts"><button type="button" id="cmpClear">Limpar comparação</button></div>`+SRC);
   const cb=$('#cmpClear');if(cb)cb.onclick=()=>{CMP=[];updCmp();refreshInfo();closeDlg()}}
 $('#bCmp').onclick=openCmp;
-$('#bHelp').onclick=()=>openDlg('Ajuda','Como usar o mapa',`<div class="sec"><ul class="help"><li><b>Mapa:</b> arraste para mover; roda do mouse, pinça ou botões + − para aproximar; ⌂ mostra tudo.</li><li><b>Clique ou toque</b> num município para ver o resumo. “Ver todos os dados” abre população, economia, educação, saneamento e evolução ao longo dos anos.</li><li><b>Cor:</b> escolha a microrregião ou um dos 56 indicadores, separados por tema (população, economia, agropecuária, saneamento, educação, saúde, desenvolvimento humano). Nos indicadores com mais de um ano, use o controle “Ano” na legenda ou “▶ Animar” para ver os anos em sequência. As cores seguem a posição no ranking, e a legenda mostra as faixas. Passe o mouse num município para ver o valor.</li><li><b>Legenda:</b> toque em “Legenda” para recolher ou abrir. Num indicador, clique numa faixa de valores para destacar só os municípios dela (clique de novo para voltar).</li><li><b>Zoom:</b> duplo clique ou duplo toque aproxima naquele ponto.</li><li><b>Personalizar cores:</b> paletas prontas (inclusive para daltônicos e para imprimir), escalas e cor de um município.</li><li><b>Nomes:</b> liga e desliga os nomes no mapa; aproxime para ver mais.</li><li><b>Comparar:</b> selecione um município e use “Comparar com outros” (até 4).</li><li><b>Lista:</b> busque (acentos não importam; Enter abre o primeiro), ordene por indicador (“Indicador do mapa” usa o que está colorindo o mapa) e filtre por microrregião. “Recolher painel” libera a tela.</li><li><b>Teclado:</b> / vai para a busca; Tab percorre os municípios do mapa; setas movem o mapa; + e − aproximam; Esc fecha janelas.</li><li><b>Sem internet:</b> depois da primeira visita, o site abre mesmo offline. No celular, use “Adicionar à tela inicial” no menu do navegador para abrir como app.</li><li><b>Compartilhar:</b> “Copiar link” guarda o município, o indicador, o ano e a paleta escolhida.</li><li><b>Baixar:</b> CSV, SVG e PNG de alta resolução (sempre com a malha completa).</li></ul></div>`);
+$('#bHelp').onclick=()=>openDlg('Ajuda','Como usar o mapa',`<div class="sec"><ul class="help"><li><b>Mapa:</b> arraste para mover; roda do mouse, pinça ou botões + − para aproximar; ⌂ mostra tudo.</li><li><b>Clique ou toque</b> num município para ver o resumo. “Ver todos os dados” abre população, economia, educação, saneamento e evolução ao longo dos anos.</li><li><b>Cor:</b> escolha as microrregiões, as regiões Alto, Médio e Baixo Jequitinhonha ou um dos 56 indicadores, separados por tema (população, economia, agropecuária, saneamento, educação, saúde, desenvolvimento humano). Nos indicadores com mais de um ano, use o controle “Ano” na legenda ou “▶ Animar” para ver os anos em sequência. As cores seguem a posição no ranking, e a legenda mostra as faixas. Passe o mouse num município para ver o valor.</li><li><b>Legenda:</b> toque em “Legenda” para recolher ou abrir. Num indicador, clique numa faixa de valores para destacar só os municípios dela (clique de novo para voltar).</li><li><b>Zoom:</b> duplo clique ou duplo toque aproxima naquele ponto.</li><li><b>Personalizar cores:</b> paletas prontas (inclusive para daltônicos e para imprimir), escalas e cor de um município.</li><li><b>Nomes:</b> liga e desliga os nomes no mapa; aproxime para ver mais.</li><li><b>Comparar:</b> selecione um município e use “Comparar com outros” (até 4).</li><li><b>Lista:</b> busque (acentos não importam; Enter abre o primeiro), ordene por indicador (“Indicador do mapa” usa o que está colorindo o mapa) e filtre por microrregião. “Recolher painel” libera a tela.</li><li><b>Teclado:</b> / vai para a busca; Tab percorre os municípios do mapa; setas movem o mapa; + e − aproximam; Esc fecha janelas.</li><li><b>Sem internet:</b> depois da primeira visita, o site abre mesmo offline. No celular, use “Adicionar à tela inicial” no menu do navegador para abrir como app.</li><li><b>Compartilhar:</b> “Copiar link” guarda o município, o indicador, o ano e a paleta escolhida.</li><li><b>Baixar:</b> CSV, SVG e PNG de alta resolução (sempre com a malha completa).</li></ul></div>`);
 $('#dx').onclick=closeDlg;$('#dlg').onclick=e=>{if(e.target.id==='dlg')closeDlg()};
 document.addEventListener('keydown',e=>{
   if(!$('#dlg').hidden){if(e.key==='Escape')return closeDlg();
@@ -558,14 +572,14 @@ document.addEventListener('keydown',e=>{
 const rankOf=f=>[...F].sort((a,b)=>b.area-a.area).indexOf(f)+1;
 function infoHtml(f){
   const dot=hx(C.mun[f.id],microColor(micros.indexOf(f.micro)));
-  return `<div class="ih"><i class="dot" style="background:${dot}" aria-hidden="true"></i><div><div class="nm">${f.nome}</div><div class="sb">Microrregião de ${f.micro}</div></div></div>`+
+  return `<div class="ih"><i class="dot" style="background:${dot}" aria-hidden="true"></i><div><div class="nm">${f.nome}</div><div class="sb">Microrregião de ${f.micro}${regTxt(f)}</div></div></div>`+
   `<dl class="kv"><div><dt>Código IBGE</dt><dd>${f.id}</dd></div><div><dt>Área aproximada</dt><dd>${fmt(f.area)} km²<small>${rankOf(f)}º maior de ${F.length}</small></dd></div>`+
   (mode!=='m'?`<div><dt>${esc(MODES[mode].t)}${YR&&MODES[mode].yrs?' ('+YR+')':''}</dt><dd>${esc(valTxt(f))}${RK.has(f)?`<small>${RK.get(f)}º de ${RN}, do maior para o menor</small>`:''}</dd></div>`:'')+`</dl>`+
   `<div class="acts"><button id="bMais" class="pri">Ver todos os dados</button><button id="bLink">${SHARE?'Compartilhar':'Copiar link'}</button><button id="bAddCmp" aria-pressed="${CMP.includes(f)}">${CMP.includes(f)?'Tirar da comparação':'Comparar com outros'}</button></div>`}
 function refreshInfo(){if(sel)$('#info').innerHTML=infoHtml(sel);updMini()}
 function updMini(){const m=$('#mini');
   if(!document.body.classList.contains('side-off')||!sel){m.hidden=true;applyLabels();return}
-  m.hidden=false;m.innerHTML=`<div class="nm">${sel.nome}</div><div class="sb">Microrregião de ${sel.micro}</div><button id="bMini" class="pri">Ver todos os dados</button>`;applyLabels()}
+  m.hidden=false;m.innerHTML=`<div class="nm">${sel.nome}</div><div class="sb">Microrregião de ${sel.micro}${regTxt(sel)}</div><button id="bMini" class="pri">Ver todos os dados</button>`;applyLabels()}
 $('#mini').onclick=e=>{if(e.target.id==='bMini'&&sel)openMun(sel)};
 
 /* menu lateral: fechar e abrir quando quiser (a escolha fica guardada neste navegador) */
