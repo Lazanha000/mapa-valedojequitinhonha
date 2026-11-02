@@ -442,7 +442,21 @@ function spark(pts,fm,titulo){
     X=x=>p+(x1>x0?(x-x0)/(x1-x0):0)*(Wd-2*p),Y=y=>Hd-p-(y1>y0?(y-y0)/(y1-y0):.5)*(Hd-2*p),A=pts[0],Z=pts[pts.length-1];
   return `<p class="intro"><b>${titulo}</b></p><svg class="spk" viewBox="0 0 ${Wd} ${Hd}" role="img" aria-label="${titulo}: de ${fm(A[1])} em ${A[0]} para ${fm(Z[1])} em ${Z[0]}"><path d="${pts.map((q,i)=>(i?'L':'M')+X(+q[0]).toFixed(1)+' '+Y(q[1]).toFixed(1)).join('')}" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>${pts.map(q=>`<circle cx="${X(+q[0]).toFixed(1)}" cy="${Y(q[1]).toFixed(1)}" r="3.5" fill="currentColor"/>`).join('')}</svg><p class="intro">${A[0]}: ${fm(A[1])} · ${Z[0]}: ${fm(Z[1])}</p>`}
 const GL='<p class="gl"><b>hab.</b> = habitantes; <b>hab/km²</b> = habitantes por quilômetro quadrado; <b>R$ mi</b> = milhões de reais; <b>R$ bi</b> = bilhões de reais. As barras mostram a porcentagem e não substituem o número ao lado.</p>';
-const SRC='<details class="srcbox"><summary>Fontes dos dados</summary><p>IBGE/SIDRA (Censos 1970–2022, estimativas de população, PIB dos Municípios, Produção Agrícola e Pecuária Municipal, saneamento), Atlas do Desenvolvimento Humano (PNUD/IPEA/FJP, via IPEADATA), INEP (IDEB) e Ministério da Saúde/DATASUS. Números coletados e conferidos no projeto de coleta, com a resposta original de cada fonte guardada; a fonte, a tabela e os avisos de cada indicador estão em “Todos os indicadores”.</p></details>';
+const SRC='<details class="srcbox"><summary>Fontes dos dados</summary><p>IBGE/SIDRA (Censos 1970–2022, estimativas de população, PIB dos Municípios, Produção Agrícola e Pecuária Municipal, saneamento), Atlas do Desenvolvimento Humano (PNUD/IPEA/FJP, via IPEADATA), INEP (IDEB) e Ministério da Saúde/DATASUS. Prefeitos, vices e vereadores: TSE (Dados Abertos). Números coletados e conferidos no projeto de coleta, com a resposta original de cada fonte guardada; a fonte, a tabela e os avisos de cada indicador estão em “Todos os indicadores”.</p></details>';
+/* ===== v8: prefeitos, vices e vereadores eleitos (TSE; eleitos.json só é baixado quando se abre uma ficha) ===== */
+let ELEP=null;
+const getEle=()=>ELEP||(ELEP=fetch('eleitos.json',{credentials:'omit'}).then(r=>r.ok?r.json():null).catch(()=>null));
+const nomePart=(n,p)=>esc(n)+(p?` <span class="sub">(${esc(p)})</span>`:'');
+const votosTxt=v=>v!=null?fmt(v)+' votos':'';
+function eleHtml(L){if(!L||!L.length)return'';
+  const it=e=>{const P=e.p,vs=e.v.length,tit=e.s?`${e.a} · eleição suplementar`:`${e.a} · mandato ${e.a+1}–${e.a+4}`;
+    const rs=[P?['Prefeito',nomePart(P[0],P[1]),votosTxt(P[2])]:['Prefeito','eleição anulada','O candidato mais votado teve a candidatura indeferida; houve nova eleição (suplementar).'],
+      P&&P[3]?['Vice-prefeito',nomePart(P[3],P[4])]:P&&!e.s&&e.a<2012?['Vice-prefeito','sem registro','O TSE não publica o vice nas eleições anteriores a 2012.']:null];
+    return `<details class="srcbox ele"><summary><span><b>${tit}</b>${P?` — ${esc(P[0])} (${esc(P[1])})`:''}</span></summary>${tb(rs)}`+
+      (vs?`<p class="intro">Vereadores eleitos (${vs}): partido e votos</p>`+tb(e.v.map(v=>[esc(v[0]),`${esc(v[1])} · ${fmt(v[2])}`])):'')+`</details>`};
+  return sec('ele','Prefeitos e vereadores',L.map(it).join('')+
+    '<details class="srcbox"><summary>Sobre estes dados</summary><p>Fonte: TSE (Dados Abertos), eleições municipais de 1996 a 2024. Mostra quem foi <b>eleito nas urnas</b> (nome de urna, partido e votos); o TSE não registra quem de fato assumiu o cargo (renúncia, cassação, suplentes). Eleições suplementares aparecem separadas. Partidos aparecem com a sigla da época. O mandato começa no ano seguinte à eleição.</p></details>',
+    'Toque em uma eleição para ver o prefeito, o vice e os vereadores eleitos.')}
 const NODATA='<p class="warn">Não foi possível carregar os dados do IBGE agora (internet ou bloqueio do navegador). Tente de novo mais tarde.</p>';
 let lastFocus=null;
 function openDlg(title,sub,body){
@@ -460,7 +474,7 @@ $('#dnav').onclick=e=>{const b=e.target.closest('button[data-go]');if(!b)return;
   const h=s.querySelector('h3');if(h)h.focus({preventScroll:true})};
 async function openMun(f){
   const sub=`Microrregião de ${f.micro}, código IBGE ${f.id}`;
-  openDlg(f.nome,sub,'<p class="load">Carregando dados…</p>');await INDP;
+  openDlg(f.nome,sub,'<p class="load">Carregando dados…</p>');await INDP;const EL=await getEle();
   const P=IND&&IND.pop&&IND.pop[f.id];if(!P)return openDlg(f.nome,sub,NODATA);
   const p22=at(P,'2022'),p10=at(P,'2010'),a=last(IND.area&&IND.area[f.id]),d=at(IND.den&&IND.den[f.id],'2022'),e=last(IND.est&&IND.est[f.id]);
   const ord=F.map(x=>[x,at(IND.pop[x.id],'2022')]).filter(x=>x[1]!=null).sort((x,y)=>y[1]-x[1]),rk=ord.findIndex(x=>x[0]===f)+1;
@@ -470,12 +484,18 @@ async function openMun(f){
     sec('pop','População',tb([p10!=null&&['Censo 2010',fmt(p10)+' hab.'],p22!=null&&p10!=null&&['Variação 2010–2022',(p22>=p10?'+':'')+f1((p22/p10-1)*100)+'%'],e&&[`Estimativa ${e.p}`,fmt(e.v)+' hab.'],cg!=null&&['Crescimento médio anual 2010–2022',f1(cg,2)+'% ao ano'],p22&&tot&&['Participação na população do Vale',f1(p22/tot*100,1)+'%']]))+
     sec('eco','Economia',tb([B?[`PIB (${B.p})`,'R$ '+f1(B.v/1000,1)+' mi','Produto Interno Bruto, em milhões de reais']:['PIB','indisponível'],S.pcy?[`PIB per capita (${S.pcy})`,'R$ '+fmt(S.pc),'PIB dividido pela população do mesmo ano']:B&&pd&&[`PIB per capita${at(P,B.p)?'':' (aprox., pop. 2022)'}`,'R$ '+fmt(B.v*1000/pd),'PIB dividido pelo número de habitantes']]))+
     sec('evo','Evolução',spark(Object.entries((IND.pib&&IND.pib[f.id])||{}),v=>'R$ '+f1(v/1000,1)+' mi','PIB (valores da época, sem correção pela inflação)')+spark(Object.entries(P),v=>fmt(v)+' hab.','População (Censos)'))+
-    socialHtml([f])+allHtml(f)+
+    socialHtml([f])+allHtml(f)+eleHtml(EL&&EL[f.id])+
     sec('ter','Território',tb([a&&[`Área oficial (${a.p})`,f1(a.v,2)+' km²'],['Municípios na microrregião',mic]]))+
     `<p class="ext"><a href="https://www.ibge.gov.br/cidades-e-estados/mg/${f.id}.html" target="_blank" rel="noopener noreferrer">Ver página completa no IBGE Cidades <span class="sr">(abre em nova aba)</span> ↗</a></p>`+GL+SRC)}
+function prefHtml(EL){if(!EL)return'';
+  const R=F.map(f=>[f,((EL[f.id]||[]).find(e=>!e.s&&e.p)||{})]).filter(r=>r[1].p);if(!R.length)return'';
+  const ano=Math.max(...R.map(r=>r[1].a));
+  return sec('pre',`Prefeitos eleitos em ${ano}`,'<details class="srcbox ele"><summary><span><b>Ver os '+R.filter(r=>r[1].a===ano).length+' prefeitos</b> — mandato '+(ano+1)+'–'+(ano+4)+'</span></summary>'+
+    tb(R.filter(r=>r[1].a===ano).sort((a,b)=>a[0].nome.localeCompare(b[0].nome,'pt-BR')).map(r=>[esc(r[0].nome),nomePart(r[1].p[0],r[1].p[1])]))+'</details>'+
+    '<p class="intro">Eleitos nas urnas (TSE). Para ver vereadores e eleições anteriores, abra a ficha de cada município.</p>')}
 async function openVale(){
   const sub=`${F.length} municípios em ${micros.length} microrregiões (mesorregião do IBGE)`;
-  openDlg('Vale do Jequitinhonha',sub,'<p class="load">Carregando dados…</p>');await INDP;
+  openDlg('Vale do Jequitinhonha',sub,'<p class="load">Carregando dados…</p>');await INDP;const EL=await getEle();
   if(!IND||!IND.pop||!Object.keys(IND.pop).length)return openDlg('Vale do Jequitinhonha',sub,NODATA);
   const sum=(L,p)=>L.reduce((s,x)=>s+(at(IND.pop[x.id],p)||0),0),ok=p=>F.filter(x=>at(IND.pop[x.id],p)!=null);
   const A=F.reduce((s,x)=>s+((last(IND.area&&IND.area[x.id])||{}).v||0),0),n22=ok('2022'),t22=sum(n22,'2022'),both=F.filter(x=>at(IND.pop[x.id],'2022')!=null&&at(IND.pop[x.id],'2010')!=null);
@@ -487,7 +507,7 @@ async function openVale(){
     hero([['População (Censo 2022)',fmt(t22),'habitantes'],A&&['Área oficial somada',fmt(A),'km²'],A&&['Densidade média',f1(t22/A,1),'hab/km²']])+
     sec('pan','Panorama',tb([both.length&&v10&&['Variação 2010–2022',(v22>=v10?'+':'')+f1((v22/v10-1)*100)+'%'],pv&&[`PIB do Vale (${py})`,'R$ '+f1(pv/1e6,2)+' bi','Produto Interno Bruto somado, em bilhões de reais'],pv&&t22&&['PIB per capita (aprox., pop. 2022)','R$ '+fmt(pv*1000/t22)],top.length>4&&['Maior município',`${top[0].nome} (${fmt(at(IND.pop[top[0].id],'2022'))})`],top.length>4&&['Menor município',`${top[top.length-1].nome} (${fmt(at(IND.pop[top[top.length-1].id],'2022'))})`]]))+
     sec('mic','População por microrregião',tb(mr),'Censo 2022. A barra mostra a parte de cada microrregião no total do Vale.')+
-    socialHtml(F)+
+    socialHtml(F)+prefHtml(EL)+
     (n22.length<F.length?`<p class="warn">Atenção: ${F.length-n22.length} município(s) sem dado de 2022 carregado; totais parciais.</p>`:'')+
     GL+SRC)}
 $('#info').onclick=e=>{const b=e.target.closest('button');if(!b)return;
@@ -558,7 +578,12 @@ function setSide(open,fx){
   if(fx)(open?$('#bSide'):$('#openSide')).focus()}
 $('#bSide').onclick=()=>setSide(false,true);
 $('#openSide').onclick=()=>setSide(true,true);
-{let so='1';try{so=localStorage.getItem('jq_side')||'1'}catch(e){}setSide(so!=='0',false)}
+{let so='1';try{so=localStorage.getItem('jq_side')||'1'}catch(e){}if(matchMedia('(max-width:800px)').matches)so='0';/* celular: tudo começa fechado */setSide(so!=='0',false)}
+/* celular: os botões do cabeçalho ficam num menu recolhido */
+function setMenu(open){$('header').classList.toggle('mo',open);$('#bMenu').setAttribute('aria-expanded',String(open));$('#bMenu').textContent=open?'✕ Fechar':'☰ Menu'}
+$('#bMenu').onclick=()=>setMenu(!$('header').classList.contains('mo'));
+$('#hmenu').addEventListener('click',e=>{if(matchMedia('(max-width:800px)').matches&&e.target.closest('#hb>button'))setMenu(false)});
+$('#bMod').addEventListener('change',()=>{if(matchMedia('(max-width:800px)').matches)setMenu(false)});
 
 /* painel "Personalizar cores" */
 const cpEl=$('#cp');
