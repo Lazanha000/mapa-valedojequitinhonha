@@ -462,14 +462,16 @@ let ELEP=null;
 const getEle=()=>ELEP||(ELEP=fetch('eleitos.json',{credentials:'omit'}).then(r=>r.ok?r.json():null).catch(()=>null));
 const nomePart=(n,p)=>esc(n)+(p?` <span class="sub">(${esc(p)})</span>`:'');
 const votosTxt=v=>v!=null?fmt(v)+' votos':'';
+/* nome completo (do cadastro no TSE) só quando diz algo além do nome de urna */
+const cheio=(u,n)=>n&&nrm(n)!==nrm(u)?esc(n):'';
 function eleHtml(L){if(!L||!L.length)return'';
   const it=e=>{const P=e.p,vs=e.v.length,tit=e.s?`${e.a} · eleição suplementar`:`${e.a} · mandato ${e.a+1}–${e.a+4}`;
-    const rs=[P?['Prefeito',nomePart(P[0],P[1]),votosTxt(P[2])]:['Prefeito','eleição anulada','O candidato mais votado teve a candidatura indeferida; houve nova eleição (suplementar).'],
-      P&&P[3]?['Vice-prefeito',nomePart(P[3],P[4])]:P&&!e.s&&e.a<2012?['Vice-prefeito','sem registro','O TSE não publica o vice nas eleições anteriores a 2012.']:null];
+    const rs=[P?['Prefeito',nomePart(P[0],P[1]),[cheio(P[0],P[5]),votosTxt(P[2])].filter(Boolean).join(' · ')]:['Prefeito','eleição anulada','Nenhum candidato a prefeito consta como eleito no TSE nesta eleição; houve eleição suplementar.'],
+      P&&P[3]?['Vice-prefeito',nomePart(P[3],P[4]),cheio(P[3],P[6])]:P&&!e.s&&e.a<2012?['Vice-prefeito','sem registro','O TSE não publica o vice nas eleições anteriores a 2012.']:null];
     return `<details class="srcbox ele"><summary><span><b>${tit}</b>${P?` — ${esc(P[0])} (${esc(P[1])})`:''}</span></summary>${tb(rs)}`+
-      (vs?`<p class="intro">Vereadores eleitos (${vs}): partido e votos</p>`+tb(e.v.map(v=>[esc(v[0]),`${esc(v[1])} · ${fmt(v[2])}`])):'')+`</details>`};
+      (vs?`<p class="intro">Vereadores eleitos (${vs}): partido e votos</p>`+tb(e.v.map(v=>[esc(v[0]),`${esc(v[1])} · ${fmt(v[2])}`,cheio(v[0],v[3])])):'')+`</details>`};
   return sec('ele','Prefeitos e vereadores',L.map(it).join('')+
-    '<details class="srcbox"><summary>Sobre estes dados</summary><p>Fonte: TSE (Dados Abertos), eleições municipais de 1996 a 2024. Mostra quem foi <b>eleito nas urnas</b> (nome de urna, partido e votos); o TSE não registra quem de fato assumiu o cargo (renúncia, cassação, suplentes). Eleições suplementares aparecem separadas. Partidos aparecem com a sigla da época. O mandato começa no ano seguinte à eleição.</p></details>',
+    '<details class="srcbox"><summary>Sobre estes dados</summary><p>Fonte: TSE (Dados Abertos), eleições municipais de 1996 a 2024. Mostra quem foi <b>eleito nas urnas</b> (nome de urna, nome completo, partido e votos), conferido contra cinco arquivos do TSE (votação, candidaturas, vagas, detalhe da votação e votos por partido); o TSE não registra quem de fato assumiu o cargo (renúncia, cassação, suplentes). Eleições suplementares aparecem separadas. Partidos aparecem com a sigla da época. O mandato começa no ano seguinte à eleição.</p></details>',
     'Toque em uma eleição para ver o prefeito, o vice e os vereadores eleitos.')}
 const NODATA='<p class="warn">Não foi possível carregar os dados do IBGE agora (internet ou bloqueio do navegador). Tente de novo mais tarde.</p>';
 let lastFocus=null;

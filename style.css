@@ -184,7 +184,7 @@ footer{padding:7px 18px;border-top:2px solid var(--ln);color:var(--mut);font-fam
 
 /* ---------- ficha (janela de dados) ---------- */
 #dlg{position:fixed;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;padding:16px;background:#141414c4}
-.box{position:relative;display:flex;flex-direction:column;width:100%;max-width:720px;max-height:90vh;max-height:90dvh;overflow:hidden;background:var(--bg);color:var(--fg);border:3px solid var(--ln);border-radius:0;font-size:16px;line-height:1.5}
+.box{position:relative;display:flex;flex-direction:column;width:100%;max-width:720px;max-height:90vh;max-height:90dvh;overflow:hidden;overflow:clip;/* clip: o pulo de seção (scrollIntoView) não pode rolar a caixa e esconder o cabeçalho */background:var(--bg);color:var(--fg);border:3px solid var(--ln);border-radius:0;font-size:16px;line-height:1.5}
 .dhead{flex:none;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:16px 20px 12px;background:var(--tinta);color:var(--papel);border-bottom:6px solid var(--terra);--focus:#7cc8ff}
 .dhead h2{margin:0;font-family:var(--fd);font-size:36px;font-weight:400;line-height:1.05}
 .dsub{margin-top:6px;color:#a79e93;font-family:var(--fm);font-size:12px;letter-spacing:.06em;text-transform:uppercase}
