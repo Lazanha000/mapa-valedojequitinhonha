@@ -93,7 +93,8 @@ function build(d){
   d=validar(d);const HS=readHash();if(HS.pal)C.pal=HS.pal;if(HS.rp)C.ramp=HS.rp;if(HS.iv)C.inv=true;
   const info={};d.muns.forEach(m=>info[m.id]={id:String(m.id),nome:m.nome,micro:m.microrregiao.nome,reg:REGIAO[String(m.id)]||null});
   micros=[...new Set(d.muns.map(m=>m.microrregiao.nome))].sort();
-  const k=Math.cos(-17.5*Math.PI/180),S=1000,P=p=>[p[0]*k*S,-p[1]*S];
+  /* Web Mercator (a mesma projeção dos mosaicos de satélite) */
+  const S=1000,P=p=>[p[0]*S,-Math.log(Math.tan(Math.PI/4+p[1]*Math.PI/360))*180/Math.PI*S];
   let X0=1e9,X1=-1e9,Y0=1e9,Y1=-1e9;
   F=d.features.map(f=>{const i=info[cod(f)];if(!i)return null;
     const g=f.geometry;if(!g||!Array.isArray(g.coordinates))return null;
@@ -101,7 +102,7 @@ function build(d){
     let area=0,best=-1,bp=null,cen=[0,0],x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;const rings=[];
     polys.forEach(pl=>Array.isArray(pl)&&pl.forEach((r,ri)=>{if(!Array.isArray(r)||r.length<4)return;
       const n=r.length,a=new Float64Array(n*2);let ok=true;
-      for(let q=0;q<n;q++){const c=r[q],lo=+c[0],la=+c[1];if(!isFinite(lo)||!isFinite(la)){ok=false;break}a[2*q]=lo*k*S;a[2*q+1]=-la*S}
+      for(let q=0;q<n;q++){const c=r[q],lo=+c[0],la=+c[1];if(!isFinite(lo)||!isFinite(la)){ok=false;break}a[2*q]=lo*S;a[2*q+1]=-Math.log(Math.tan(Math.PI/4+la*Math.PI/360))*180/Math.PI*S}
       if(!ok)return;
       const ar=Math.abs(ringArea(r));area+=ri?-ar:ar;
       for(let q=0;q<n;q++){const x=a[2*q],y=a[2*q+1];if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}
@@ -233,16 +234,39 @@ function fillExportLabels(l,cx,cy,upp,Wp,Hp,s){
   l.innerHTML=vis.map(f=>`<text x="${f.pin[0].toFixed(1)}" y="${f.pin[1].toFixed(1)}" dy=".35em"${f===sel?' font-weight="800" fill="#9a4526"':''}>${esc(f.nome)}</text>`).join('')}
 
 /* Redesenho no máximo uma vez por quadro; nomes são reposicionados só quando o gesto para (evita travar ao arrastar/zoom). */
+/* Fundo de satélite/relevo: mosaicos Web Mercator como <image> no próprio SVG. A projeção do mapa é a mesma deles, então encaixam sem biblioteca. */
+const BG={s:{u:(z,x,y)=>`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`,max:18,c:'Imagens: Esri, Maxar, Earthstar Geographics',
+    /* reserva de licença aberta: entra sozinha se a Esri parar de responder */
+    alt:{u:(z,x,y)=>`https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2024_3857/default/g/${z}/${y}/${x}.jpg`,max:15,c:'Sentinel-2 cloudless 2024, EOX (dados Copernicus modificados), CC BY-NC-SA 4.0'}},
+  t:{u:(z,x,y)=>`https://tile.opentopomap.org/${z}/${x}/${y}.png`,max:17,c:'Relevo: © OpenStreetMap, SRTM · OpenTopoMap (CC-BY-SA)'}};
+let bg='';try{bg=localStorage.getItem('jq_bg')||''}catch(e){}if(!BG[bg])bg='';
+const tG=document.createElementNS('http://www.w3.org/2000/svg','g'),tM=new Map();tG.id='t';svg.insertBefore(tG,$('#o'));let tT=0;
+function tiles(x0,y0,w,h){const b=BG[bg];if(!b){tM.clear();tG.textContent='';return}
+  const z=Math.max(5,Math.min(b.max,Math.round(Math.log2(360000/(256*st.upp))))),n=2**z,T=360000/n,keep=new Set(),
+    xa=Math.max(0,Math.floor((x0+180000)/T)),xb=Math.min(n-1,Math.floor((x0+w+180000)/T)),
+    ya=Math.max(0,Math.floor((y0+180000)/T)),yb=Math.min(n-1,Math.floor((y0+h+180000)/T));
+  if((xb-xa+1)*(yb-ya+1)>120)return;
+  for(let x=xa;x<=xb;x++)for(let y=ya;y<=yb;y++){const k=bg+z+'/'+x+'/'+y;keep.add(k);if(tM.has(k))continue;
+    const im=document.createElementNS('http://www.w3.org/2000/svg','image');
+    /* 0,4% maior que o mosaico: tapa a emenda de 1 px entre vizinhos */
+    im.setAttribute('x',x*T-180000);im.setAttribute('y',y*T-180000);im.setAttribute('width',T*1.004);im.setAttribute('height',T*1.004);
+    im.setAttribute('preserveAspectRatio','none');im.setAttribute('href',b.u(z,x,y));im.onload=()=>{b.ok=1};im.onerror=()=>{im.remove();tM.delete(k);
+      if(b.alt&&!b.ok&&navigator.onLine&&(b.err=(b.err||0)+1)>=4){Object.assign(b,b.alt,{alt:null});tM.clear();tG.textContent='';applyBg();view()}};tG.appendChild(im);tM.set(k,im)}
+  /* os mosaicos antigos ficam por baixo até o gesto parar, para o fundo não piscar ao aproximar */
+  clearTimeout(tT);tT=setTimeout(()=>tM.forEach((el,k)=>{if(!keep.has(k)){el.remove();tM.delete(k)}}),700)}
+function applyBg(){svg.classList.toggle('bg',!!bg);svg.classList.toggle('bgt',bg==='t');const a=$('#atr');a.hidden=!bg;a.textContent=bg?BG[bg].c:''}
+$('#bBg').value=bg;applyBg();
+$('#bBg').onchange=e=>{bg=BG[e.target.value]?e.target.value:'';try{localStorage.setItem('jq_bg',bg)}catch(_){}applyBg();if(bb)view()};
 let raf=0,labT=0,lastU=0;
 function view(){if(!raf)raf=requestAnimationFrame(viewNow)}
 function viewNow(){raf=0;if(!bb)return;const w=st.upp*W,h=st.upp*H,x0=st.cx-w/2,y0=st.cy-h/2;
   svg.setAttribute('viewBox',`${x0} ${y0} ${w} ${h}`);
   if(!lastU||Math.abs(st.upp/lastU-1)>.004){lastU=st.upp;sty()}
-  geo(x0,y0,w,h);clearTimeout(labT);labT=setTimeout(applyLabels,110)}
+  geo(x0,y0,w,h);tiles(x0,y0,w,h);clearTimeout(labT);labT=setTimeout(applyLabels,110)}
 function size(){const r=svg.getBoundingClientRect(),s=$('#stage');W=r.width||s.clientWidth||1;H=r.height||s.clientHeight||1}
 /* deixa ~60 px à direita para os botões de zoom não cobrirem o mapa */
 function fitAll(){size();const pr=W>260?60:0,nf=Math.max(bb.w/(W-pr),bb.h/H)*1.06;if(!fit||Math.abs(nf/fit-1)>.02)F.forEach(f=>{f.lod.clear();f.curL=-1});fit=nf;st={cx:bb.cx+pr/2*nf,cy:bb.cy,upp:fit};lastU=0;view()}
-function zoomAt(f,px,py){const u=Math.min(fit*1.6,Math.max(fit/300,st.upp/f));
+function zoomAt(f,px,py){const u=Math.min(fit*1.6,Math.max(BG[bg]?Math.min(fit/300,360000/(512*2**BG[bg].max)):fit/300,st.upp/f));
   const wx=st.cx+(px-W/2)*st.upp,wy=st.cy+(py-H/2)*st.upp;st.cx=wx-(px-W/2)*u;st.cy=wy-(py-H/2)*u;st.upp=u;view()}
 let mode='m',RAMP=null,YR=null;
 /* Modos de colorir. Todos usam só dados já carregados do IBGE (SIDRA); sem dado, o município fica cinza. */
@@ -379,7 +403,7 @@ new ResizeObserver(()=>{if(F.length){size();view()}}).observe(svg);
 
 function snap(Wp){const pad=1.06,ew=bb.w*pad,eh=bb.h*pad,Hp=Math.round(Wp*eh/ew),s=Wp/1500,c=svg.cloneNode(true),x=bb.cx-ew/2,y=bb.cy-eh/2;
   c.setAttribute('viewBox',`${x} ${y} ${ew} ${eh}`);c.setAttribute('width',Wp);c.setAttribute('height',Hp);c.removeAttribute('style');
-  c.querySelector('#sty').textContent=styExp(s);
+  c.querySelector('#sty').textContent=styExp(s);c.querySelector('#t')?.remove();c.removeAttribute('class');
   /* #m: pelo data-i (o selecionado é movido para o fim do grupo, então a ordem não bate com F); #o: ordem original */
   c.querySelectorAll('#o path').forEach((p,i)=>{p.setAttribute('d',rawD(F[i]));p.style.display=''});
   c.querySelectorAll('#m path').forEach(p=>{p.setAttribute('d',rawD(F[+p.dataset.i]));p.style.display=''});

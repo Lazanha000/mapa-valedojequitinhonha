@@ -70,6 +70,9 @@ header select option,header select optgroup{background:var(--bg);color:var(--fg)
   header button:hover,header select:hover,header #dlm summary:hover,header #dlm[open] summary{background:var(--pn)}
   header button.on{background:var(--papel);color:var(--tinta)}}
 #bMod{max-width:240px;text-overflow:ellipsis}
+/* fundo de satélite/relevo: municípios translúcidos e contorno claro por cima da imagem */
+#map.bg #o path{fill:none}#map.bg .m{fill-opacity:.3}#map.bg .m:not(.sel):not(:focus-visible){stroke:#fff}#map.bgt .m:not(.sel):not(:focus-visible){stroke:#3a2a20}
+#atr{position:absolute;left:6px;bottom:6px;max-width:60%;padding:2px 6px;font-size:11px;line-height:1.3;background:rgba(255,255,255,.8);color:#141414;border-radius:3px;pointer-events:none}
 #dlm summary{list-style:none;user-select:none}
 #dlm summary::-webkit-details-marker{display:none}
 .dlp{position:fixed;z-index:12;display:flex;flex-direction:column;gap:2px;min-width:240px;padding:6px;background:var(--bg);color:var(--fg);border:2px solid var(--ln);border-radius:2px}
@@ -250,7 +253,7 @@ table.t{width:100%;border-collapse:collapse;font-size:16px}
   #hmenu{display:none;flex:1 1 100%;flex-direction:column;gap:8px;padding:4px 0 6px}
   header.mo #hmenu{display:flex}
   .sfn{display:none}
-  #bMod{width:100%;max-width:none}
+  #bMod,#bBg{width:100%;max-width:none}
   #hb{display:grid;grid-template-columns:1fr 1fr;gap:6px}
   #hb>*{min-width:0}
   #dlm summary{justify-content:center}
@@ -279,7 +282,7 @@ table.t{width:100%;border-collapse:collapse;font-size:16px}
 @media(forced-colors:active){.m{forced-color-adjust:none}}
 @media print{
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  header button,#dlm,#bMod,aside,#ctl,#tip,#openSide,#mini,#nhint,#cp,#legT,.tlw,.skip,#net{display:none!important}
+  header button,#dlm,#bMod,#bBg,aside,#ctl,#tip,#openSide,#mini,#nhint,#cp,#legT,.tlw,.skip,#net{display:none!important}
   body{display:block;height:auto}main{display:block}
   header{background:#fff;color:#141414}h1 small{background:#fff;color:#141414;padding-left:0}
   #stage{height:85vh;background:#fff}

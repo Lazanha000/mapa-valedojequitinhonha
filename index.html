@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://servicodados.ibge.gov.br; font-src 'self'; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://server.arcgisonline.com https://tile.opentopomap.org https://tiles.maps.eox.at; connect-src 'self' https://servicodados.ibge.gov.br; font-src 'self'; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Mapa do Vale do Jequitinhonha · Polis Jequitinhonha</title>
 <meta name="description" content="Mapa interativo dos 51 municípios da Mesorregião Jequitinhonha (MG) com 56 indicadores socioeconômicos oficiais (IBGE, Atlas do Desenvolvimento Humano, INEP, DATASUS) e os prefeitos e vereadores eleitos de 1996 a 2024 (TSE), cada um com fonte, ano e avisos.">
@@ -26,7 +26,7 @@
 <header>
 <h1><picture><source media="print" srcset="marca-papel.svg"><source media="(prefers-color-scheme:dark)" srcset="marca-tinta.svg"><img class="marca" src="marca-terra.svg" alt="Polis Jequitinhonha" width="152" height="46"></picture><span class="sr">: mapa do Vale do Jequitinhonha</span><small id="sub">carregando…</small></h1>
 <button id="bMenu" type="button" aria-expanded="false" aria-controls="hmenu">☰ Menu</button>
-<div id="hmenu"><select id="bMod" aria-label="Colorir o mapa por"><option value="m">Cor: microrregião</option><option value="r">Cor: Alto, Médio e Baixo Jequitinhonha</option><option value="p" disabled>Cor: população</option><option value="d" disabled>Cor: densidade</option><option value="b" disabled>Cor: PIB</option><option value="c" disabled>Cor: PIB per capita</option><option value="a" disabled>Cor: alfabetização</option><option value="s" disabled>Cor: esgoto adequado</option></select>
+<div id="hmenu"><select id="bMod" aria-label="Colorir o mapa por"><option value="m">Cor: microrregião</option><option value="r">Cor: Alto, Médio e Baixo Jequitinhonha</option><option value="p" disabled>Cor: população</option><option value="d" disabled>Cor: densidade</option><option value="b" disabled>Cor: PIB</option><option value="c" disabled>Cor: PIB per capita</option><option value="a" disabled>Cor: alfabetização</option><option value="s" disabled>Cor: esgoto adequado</option></select><select id="bBg" aria-label="Fundo do mapa"><option value="">Fundo: nenhum</option><option value="s">Fundo: satélite</option><option value="t">Fundo: relevo</option></select>
 <div id="hb"><button id="bCor" class="on" aria-pressed="true">Cores</button><button id="bNom" aria-pressed="false">Nomes</button>
 <button id="bPal" aria-expanded="false" aria-controls="cp">Personalizar cores</button><button id="bVale">Dados do Vale</button><button id="bCmp" hidden>Comparar (0)</button><details id="dlm"><summary>Baixar ▾</summary><div class="dlp"><button id="bCsv">Tabela CSV (abre no Excel)</button><button id="bSvg">Mapa em SVG (vetor)</button><button id="bPng">Mapa em PNG (alta resolução)</button></div></details><button id="bHelp" aria-label="Ajuda">? Ajuda</button></div></div>
 </header>
@@ -41,7 +41,7 @@
 <svg id="map" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Mapa dos municípios do Vale do Jequitinhonha. Use Tab para percorrer os municípios, Enter para selecionar, setas para mover o mapa e + ou − para aproximar."><style id="sty"></style><g id="o"></g><g id="m"></g><g id="l" fill="#141414" stroke="#efe8dc" font-family="Inter, system-ui, sans-serif" paint-order="stroke" text-anchor="middle" font-weight="600" style="display:none;pointer-events:none"></g></svg>
 <div id="ctl"><button id="zi" aria-label="Aproximar">+</button><button id="zo" aria-label="Afastar">−</button><button id="zr" title="Ver tudo" aria-label="Ver o mapa inteiro">⌂</button></div>
 <button id="openSide" hidden aria-controls="side" aria-expanded="false" aria-label="Abrir a lista de municípios">☰ Lista</button>
-<div id="mini" hidden></div>
+<div id="mini" hidden></div><div id="atr" hidden></div>
 <div id="nhint" role="status" hidden></div>
 <div id="cp" role="dialog" aria-labelledby="cpt" tabindex="-1" hidden><div class="cph"><h2 id="cpt">Cores e nomes</h2><button id="cpx" aria-label="Fechar o painel de cores">✕ Fechar</button></div><div id="cpb"></div></div>
 <div id="leg"><button type="button" id="legT" aria-expanded="true" aria-controls="legB">Legenda</button><div id="legB"></div></div>
