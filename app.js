@@ -136,7 +136,7 @@ function build(d){
   fillFm();
 }
 /* Traços: largura em pixels de tela = largura × unidades-por-pixel (sem vector-effect, que é lento em contornos grandes). */
-function sty(){const u=st.upp;$('#sty').textContent=`path{stroke-linejoin:round}#o path{fill:var(--ol);stroke:var(--ol);stroke-width:${3.2*u}px}.m{stroke:var(--ms);stroke-width:${.7*u}px;cursor:pointer}@media(hover:hover){.m:hover{stroke:var(--fg);stroke-width:${1.8*u}px}}.m.sel{stroke:var(--rb);stroke-width:${2.6*u}px}.m:focus-visible{stroke:var(--focus);stroke-width:${3.5*u}px}`}
+function sty(){const u=st.upp;$('#sty').textContent=`path{stroke-linejoin:round}#o path{fill:var(--ol);stroke:var(--ol);stroke-width:${3.2*u}px}.m{stroke:var(--ms);stroke-width:${.7*u}px;cursor:pointer}.bgf .m{stroke-width:${1.5*u}px}.bgf #o path{stroke-width:${4.4*u}px}@media(hover:hover){.m:hover{stroke:var(--fg);stroke-width:${1.8*u}px}}.m.sel{stroke:var(--rb);stroke-width:${2.6*u}px}.m:focus-visible{stroke:var(--focus);stroke-width:${3.5*u}px}`}
 /* Estilo da exportação (SVG/PNG): traço de largura fixa na imagem. */
 const styExp=s=>`path{vector-effect:non-scaling-stroke;stroke-linejoin:round}#o path{fill:#141414;stroke:#141414;stroke-width:${3.2*s}px}.m{stroke:#2b3d35;stroke-width:${.7*s}px}.m.sel{stroke:#b8325e;stroke-width:${2.4*s}px}`;
 /* ===== v6: geometria por nível de zoom (LOD) =====
@@ -239,24 +239,38 @@ const BG={s:{u:(z,x,y)=>`https://server.arcgisonline.com/ArcGIS/rest/services/Wo
     /* reserva de licença aberta: entra sozinha se a Esri parar de responder */
     alt:{u:(z,x,y)=>`https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2024_3857/default/g/${z}/${y}/${x}.jpg`,max:15,c:'Sentinel-2 cloudless 2024, EOX (dados Copernicus modificados), CC BY-NC-SA 4.0'}},
   t:{u:(z,x,y)=>`https://tile.opentopomap.org/${z}/${x}/${y}.png`,max:17,c:'Relevo: © OpenStreetMap, SRTM · OpenTopoMap (CC-BY-SA)'}};
+BG.f=BG.s;/* mesmo satélite, com os municípios em cores fortes */
 let bg='';try{bg=localStorage.getItem('jq_bg')||''}catch(e){}if(!BG[bg])bg='';
-const tG=document.createElementNS('http://www.w3.org/2000/svg','g'),tM=new Map();tG.id='t';svg.insertBefore(tG,$('#o'));let tT=0;
-function tiles(x0,y0,w,h){const b=BG[bg];if(!b){tM.clear();tG.textContent='';return}
-  const z=Math.max(5,Math.min(b.max,Math.round(Math.log2(360000/(256*st.upp))))),n=2**z,T=360000/n,keep=new Set(),
+const tG=document.createElementNS('http://www.w3.org/2000/svg','g'),tM=new Map();tG.id='t';svg.insertBefore(tG,$('#o'));
+let tZ=-1,tW=0,tK=new Set();
+const tClear=()=>{clearTimeout(tW);tM.clear();tG.textContent='';tZ=-1};
+/* tira os mosaicos que sobraram de outro nível/posição, mas só quando os da tela já chegaram (o fundo não pisca) */
+function tPurge(){for(const k of tK){const e=tM.get(k);if(e&&!e.ok)return}tM.forEach((el,k)=>{if(!tK.has(k)){el.remove();tM.delete(k)}})}
+function tiles(x0,y0,w,h){const b=BG[bg];if(!b){if(tM.size||tZ>=0)tClear();return}
+  const z=Math.max(5,Math.min(b.max,Math.round(Math.log2(360000/(256*st.upp)))));clearTimeout(tW);
+  /* nível novo (zoom, ou a tela ainda se ajustando na abertura): espera o gesto parar, para não baixar os níveis do meio do caminho */
+  if(z!==tZ)tW=setTimeout(()=>{tZ=z;tLoad(b,z,x0,y0,w,h)},tZ<0?60:170);else tLoad(b,z,x0,y0,w,h)}
+function tLoad(b,z,x0,y0,w,h){const n=2**z,T=360000/n,
     xa=Math.max(0,Math.floor((x0+180000)/T)),xb=Math.min(n-1,Math.floor((x0+w+180000)/T)),
     ya=Math.max(0,Math.floor((y0+180000)/T)),yb=Math.min(n-1,Math.floor((y0+h+180000)/T));
   if((xb-xa+1)*(yb-ya+1)>120)return;
-  for(let x=xa;x<=xb;x++)for(let y=ya;y<=yb;y++){const k=bg+z+'/'+x+'/'+y;keep.add(k);if(tM.has(k))continue;
+  const cx=(x0+w/2+180000)/T-.5,cy=(y0+h/2+180000)/T-.5,need=[];tK=new Set();
+  for(let x=xa;x<=xb;x++)for(let y=ya;y<=yb;y++){const k=z+'/'+x+'/'+y;tK.add(k);if(!tM.has(k))need.push([(x-cx)**2+(y-cy)**2,x,y,k])}
+  /* desiste na hora dos que ainda não chegaram e já não servem: libera a conexão para os da tela */
+  tM.forEach((el,k)=>{if(!el.ok&&!tK.has(k)){el.remove();tM.delete(k)}});
+  /* do centro da tela para as bordas */
+  need.sort((p,q)=>p[0]-q[0]).forEach(([,x,y,k])=>{
     const im=document.createElementNS('http://www.w3.org/2000/svg','image');
     /* 0,4% maior que o mosaico: tapa a emenda de 1 px entre vizinhos */
     im.setAttribute('x',x*T-180000);im.setAttribute('y',y*T-180000);im.setAttribute('width',T*1.004);im.setAttribute('height',T*1.004);
-    im.setAttribute('preserveAspectRatio','none');im.setAttribute('href',b.u(z,x,y));im.onload=()=>{b.ok=1};im.onerror=()=>{im.remove();tM.delete(k);
-      if(b.alt&&!b.ok&&navigator.onLine&&(b.err=(b.err||0)+1)>=4){Object.assign(b,b.alt,{alt:null});tM.clear();tG.textContent='';applyBg();view()}};tG.appendChild(im);tM.set(k,im)}
-  /* os mosaicos antigos ficam por baixo até o gesto parar, para o fundo não piscar ao aproximar */
-  clearTimeout(tT);tT=setTimeout(()=>tM.forEach((el,k)=>{if(!keep.has(k)){el.remove();tM.delete(k)}}),700)}
-function applyBg(){svg.classList.toggle('bg',!!bg);svg.classList.toggle('bgt',bg==='t');const a=$('#atr');a.hidden=!bg;a.textContent=bg?BG[bg].c:''}
+    im.setAttribute('preserveAspectRatio','none');im.setAttribute('href',b.u(z,x,y));
+    im.onload=()=>{b.ok=im.ok=1;tPurge()};im.onerror=()=>{im.remove();tM.delete(k);
+      if(b.alt&&!b.ok&&navigator.onLine&&(b.err=(b.err||0)+1)>=4){Object.assign(b,b.alt,{alt:null});tClear();applyBg();view()}else tPurge()};
+    tG.appendChild(im);tM.set(k,im)});
+  tPurge()}
+function applyBg(){svg.classList.toggle('bg',!!bg);svg.classList.toggle('bgt',bg==='t');svg.classList.toggle('bgf',bg==='f');const a=$('#atr');a.hidden=!bg;a.textContent=bg?BG[bg].c:''}
 $('#bBg').value=bg;applyBg();
-$('#bBg').onchange=e=>{bg=BG[e.target.value]?e.target.value:'';try{localStorage.setItem('jq_bg',bg)}catch(_){}applyBg();if(bb)view()};
+$('#bBg').onchange=e=>{const o=BG[bg];bg=BG[e.target.value]?e.target.value:'';if(BG[bg]!==o)tClear();try{localStorage.setItem('jq_bg',bg)}catch(_){}applyBg();if(bb)view()};
 let raf=0,labT=0,lastU=0;
 function view(){if(!raf)raf=requestAnimationFrame(viewNow)}
 function viewNow(){raf=0;if(!bb)return;const w=st.upp*W,h=st.upp*H,x0=st.cx-w/2,y0=st.cy-h/2;
