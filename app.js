@@ -136,7 +136,8 @@ function build(d){
   fillFm();
 }
 /* Traços: largura em pixels de tela = largura × unidades-por-pixel (sem vector-effect, que é lento em contornos grandes). */
-function sty(){const u=st.upp;$('#sty').textContent=`path{stroke-linejoin:round}#o path{fill:var(--ol);stroke:var(--ol);stroke-width:${3.2*u}px}.m{stroke:var(--ms);stroke-width:${.7*u}px;cursor:pointer}.bg .m{stroke-width:${1.2*u}px}.bgf .m{stroke-width:${2.2*u}px}.bgf #o path{stroke-width:${4.4*u}px}@media(hover:hover){.m:hover{stroke:var(--fg);stroke-width:${1.8*u}px}}.m.sel{stroke:var(--rb);stroke-width:${2.6*u}px}.m:focus-visible{stroke:var(--focus);stroke-width:${3.5*u}px}`}
+/* com fundo ligado: cor quase sólida na visão geral, mais transparente a cada aproximação (deixa ver o terreno) */
+function sty(){const u=st.upp;$('#sty').textContent=`path{stroke-linejoin:round}#o path{fill:var(--ol);stroke:var(--ol);stroke-width:${3.2*u}px}.m{stroke:var(--ms);stroke-width:${.7*u}px;cursor:pointer}.bg .m{fill-opacity:${Math.max(.15,.94-.16*Math.log2(Math.max(1,fit/u))).toFixed(2)};stroke-width:${1.8*u}px}.bg #o path{stroke-width:${4*u}px}@media(hover:hover){.m:hover{stroke:var(--fg);stroke-width:${1.8*u}px}}.m.sel{stroke:var(--rb);stroke-width:${2.6*u}px}.m:focus-visible{stroke:var(--focus);stroke-width:${3.5*u}px}`}
 /* Estilo da exportação (SVG/PNG): traço de largura fixa na imagem. */
 const styExp=s=>`path{vector-effect:non-scaling-stroke;stroke-linejoin:round}#o path{fill:#141414;stroke:#141414;stroke-width:${3.2*s}px}.m{stroke:#2b3d35;stroke-width:${.7*s}px}.m.sel{stroke:#b8325e;stroke-width:${2.4*s}px}`;
 /* ===== v6: geometria por nível de zoom (LOD) =====
@@ -239,8 +240,7 @@ const BG={s:{u:(z,x,y)=>`https://server.arcgisonline.com/ArcGIS/rest/services/Wo
     /* reserva de licença aberta: entra sozinha se a Esri parar de responder */
     alt:{u:(z,x,y)=>`https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2024_3857/default/g/${z}/${y}/${x}.jpg`,max:15,c:'Sentinel-2 cloudless 2024, EOX (dados Copernicus modificados), CC BY-NC-SA 4.0'}},
   t:{u:(z,x,y)=>`https://tile.opentopomap.org/${z}/${x}/${y}.png`,max:17,c:'Relevo: © OpenStreetMap, SRTM · OpenTopoMap (CC-BY-SA)'}};
-BG.f=BG.s;BG.g=BG.t;/* mesmo satélite, com os municípios em cores fortes */
-let bg='';try{bg=localStorage.getItem('jq_bg')||''}catch(e){}if(!BG[bg])bg='';
+let bg='';try{bg=localStorage.getItem('jq_bg')||''}catch(e){}bg={f:'s',g:'t'}[bg]||bg;/* f,g: opções antigas de cores fortes */if(!BG[bg])bg='';
 const tG=document.createElementNS('http://www.w3.org/2000/svg','g'),tM=new Map();tG.id='t';svg.insertBefore(tG,$('#o'));
 let tZ=-1,tW=0,tK=new Set();
 const tClear=()=>{clearTimeout(tW);tM.clear();tG.textContent='';tZ=-1};
@@ -268,7 +268,7 @@ function tLoad(b,z,x0,y0,w,h){const n=2**z,T=360000/n,
       if(b.alt&&!b.ok&&navigator.onLine&&(b.err=(b.err||0)+1)>=4){Object.assign(b,b.alt,{alt:null});tClear();applyBg();view()}else tPurge()};
     tG.appendChild(im);tM.set(k,im)});
   tPurge()}
-function applyBg(){svg.classList.toggle('bg',!!bg);svg.classList.toggle('bgt',bg==='t'||bg==='g');svg.classList.toggle('bgf',bg==='f'||bg==='g');const a=$('#atr');a.hidden=!bg;a.textContent=bg?BG[bg].c:''}
+function applyBg(){svg.classList.toggle('bg',!!bg);svg.classList.toggle('bgt',bg==='t');const a=$('#atr');a.hidden=!bg;a.textContent=bg?BG[bg].c:''}
 $('#bBg').value=bg;applyBg();
 $('#bBg').onchange=e=>{const o=BG[bg];bg=BG[e.target.value]?e.target.value:'';if(BG[bg]!==o)tClear();try{localStorage.setItem('jq_bg',bg)}catch(_){}applyBg();if(bb)view()};
 let raf=0,labT=0,lastU=0;
