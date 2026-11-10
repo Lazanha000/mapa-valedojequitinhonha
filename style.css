@@ -71,7 +71,7 @@ header select option,header select optgroup{background:var(--bg);color:var(--fg)
   header button.on{background:var(--papel);color:var(--tinta)}}
 #bMod{max-width:240px;text-overflow:ellipsis}
 /* fundo de satélite/relevo: municípios translúcidos e contorno claro por cima da imagem */
-#map.bg #o path{fill:none}#map.bg .m{fill-opacity:.3}#map.bgf .m{fill-opacity:.68}#map.bg .m:not(.sel):not(:focus-visible){stroke:#fff}#map.bgt .m:not(.sel):not(:focus-visible){stroke:#3a2a20}
+#map.bg #o path{fill:none}#map.bg .m{fill-opacity:.3}#map.bgf .m{fill-opacity:.84}#map.bg .m:not(.sel):not(:focus-visible){stroke:#fff}#map.bgt .m:not(.sel):not(:focus-visible){stroke:#3a2a20}
 #atr{position:absolute;left:6px;bottom:6px;max-width:60%;padding:2px 6px;font-size:11px;line-height:1.3;background:rgba(255,255,255,.8);color:#141414;border-radius:3px;pointer-events:none}
 #dlm summary{list-style:none;user-select:none}
 #dlm summary::-webkit-details-marker{display:none}
