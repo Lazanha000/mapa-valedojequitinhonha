@@ -136,7 +136,7 @@ function build(d){
   fillFm();
 }
 /* Traços: largura em pixels de tela = largura × unidades-por-pixel (sem vector-effect, que é lento em contornos grandes). */
-function sty(){const u=st.upp;$('#sty').textContent=`path{stroke-linejoin:round}#o path{fill:var(--ol);stroke:var(--ol);stroke-width:${3.2*u}px}.m{stroke:var(--ms);stroke-width:${.7*u}px;cursor:pointer}.bgf .m{stroke-width:${1.8*u}px}.bgf #o path{stroke-width:${4.4*u}px}@media(hover:hover){.m:hover{stroke:var(--fg);stroke-width:${1.8*u}px}}.m.sel{stroke:var(--rb);stroke-width:${2.6*u}px}.m:focus-visible{stroke:var(--focus);stroke-width:${3.5*u}px}`}
+function sty(){const u=st.upp;$('#sty').textContent=`path{stroke-linejoin:round}#o path{fill:var(--ol);stroke:var(--ol);stroke-width:${3.2*u}px}.m{stroke:var(--ms);stroke-width:${.7*u}px;cursor:pointer}.bg .m{stroke-width:${1.2*u}px}.bgf .m{stroke-width:${2.2*u}px}.bgf #o path{stroke-width:${4.4*u}px}@media(hover:hover){.m:hover{stroke:var(--fg);stroke-width:${1.8*u}px}}.m.sel{stroke:var(--rb);stroke-width:${2.6*u}px}.m:focus-visible{stroke:var(--focus);stroke-width:${3.5*u}px}`}
 /* Estilo da exportação (SVG/PNG): traço de largura fixa na imagem. */
 const styExp=s=>`path{vector-effect:non-scaling-stroke;stroke-linejoin:round}#o path{fill:#141414;stroke:#141414;stroke-width:${3.2*s}px}.m{stroke:#2b3d35;stroke-width:${.7*s}px}.m.sel{stroke:#b8325e;stroke-width:${2.4*s}px}`;
 /* ===== v6: geometria por nível de zoom (LOD) =====
